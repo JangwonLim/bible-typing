@@ -3,6 +3,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>말씀 타자 대결</title>
+<script>
+  (function () {
+    var th = 'light';
+    try { th = JSON.parse(localStorage.getItem('bt:theme')) === 'dark' ? 'dark' : 'light'; } catch (e) {}
+    document.documentElement.setAttribute('data-theme', th);
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
@@ -103,6 +110,24 @@
     margin: 0;
     text-wrap: balance;
   }
+  .head-right { display: grid; justify-items: end; gap: 10px; }
+  .theme {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .theme button {
+    border: 0;
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 13px;
+    background: none;
+    color: var(--muted);
+  }
+  .theme button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
   .rule {
     font-size: 13px;
     color: var(--muted);
@@ -336,6 +361,7 @@
 
   @media (max-width: 720px) {
     .setup { grid-template-columns: 1fr; }
+    .head-right { justify-items: start; }
     .custom { grid-template-columns: 1fr; }
     .stats { grid-template-columns: repeat(2, 1fr); }
     .stat:nth-child(3) { border-left: 0; }
@@ -354,9 +380,15 @@
       <p class="eyebrow" data-i18n="eyebrow">1 : 1 말씀 타자</p>
       <h1 data-i18n="h1">말씀 타자 대결</h1>
     </div>
-    <div class="rule" data-i18n="rule">
+    <div class="head-right">
+      <div class="theme" role="group" aria-label="화면 밝기">
+        <button type="button" id="themeLight" aria-pressed="true">라이트</button>
+        <button type="button" id="themeDark" aria-pressed="false">다크</button>
+      </div>
+      <div class="rule" data-i18n="rule">
         <b>최종 기록</b><span class="op">=</span>걸린 시간<span class="op">+</span>(오타 + 지운 횟수) × 벌점<span class="op">·</span>짧은 사람이 승리
       </div>
+    </div>
   </header>
 
   <section class="setup" aria-label="대결 설정">
@@ -452,7 +484,21 @@
       { id: 'rom8-28', ref: '로마서 8:28', text: '우리가 알거니와 하나님을 사랑하는 자 곧 그 뜻대로 부르심을 입은 자들에게는 모든 것이 합력하여 선을 이루느니라' },
       { id: 'jos1-9', ref: '여호수아 1:9', text: '내가 네게 명한 것이 아니냐 마음을 강하게 하고 담대히 하라 두려워 말며 놀라지 말라 네가 어디로 가든지 네 하나님 여호와가 너와 함께 하느니라 하시니라' },
       { id: 'isa41-10', ref: '이사야 41:10', text: '두려워 말라 내가 너와 함께 함이니라 놀라지 말라 나는 네 하나님이 됨이니라 내가 너를 굳세게 하리라 참으로 너를 도와 주리라 참으로 나의 의로운 오른손으로 너를 붙들리라' },
-      { id: 'gal2-20', ref: '갈라디아서 2:20', text: '내가 그리스도와 함께 십자가에 못 박혔나니 그런즉 이제는 내가 사는 것이 아니요 오직 내 안에 그리스도께서 사신 것이라 이제 내가 육체 가운데 사는 것은 나를 사랑하사 나를 위하여 자기 몸을 버리신 하나님의 아들을 믿는 믿음 안에서 사는 것이라' }
+      { id: 'gal2-20', ref: '갈라디아서 2:20', text: '내가 그리스도와 함께 십자가에 못 박혔나니 그런즉 이제는 내가 사는 것이 아니요 오직 내 안에 그리스도께서 사신 것이라 이제 내가 육체 가운데 사는 것은 나를 사랑하사 나를 위하여 자기 몸을 버리신 하나님의 아들을 믿는 믿음 안에서 사는 것이라' },
+      { id: 'gen1-1', ref: '창세기 1:1', text: '태초에 하나님이 천지를 창조하시니라' },
+      { id: 'ps119-105', ref: '시편 119:105', text: '주의 말씀은 내 발에 등이요 내 길에 빛이니이다' },
+      { id: 'heb11-1', ref: '히브리서 11:1', text: '믿음은 바라는 것들의 실상이요 보지 못하는 것들의 증거니' },
+      { id: '1jn4-8', ref: '요한일서 4:8', text: '사랑하지 아니하는 자는 하나님을 알지 못하나니 이는 하나님은 사랑이심이라' },
+      { id: 'mt5-14', ref: '마태복음 5:14', text: '너희는 세상의 빛이라 산 위에 있는 동네가 숨기우지 못할 것이요' },
+      { id: 'ps46-1', ref: '시편 46:1', text: '하나님은 우리의 피난처시요 힘이시니 환난 중에 만날 큰 도움이시라' },
+      { id: 'mt6-33', ref: '마태복음 6:33', text: '너희는 먼저 그의 나라와 그의 의를 구하라 그리하면 이 모든 것을 너희에게 더하시리라' },
+      { id: 'jn14-6', ref: '요한복음 14:6', text: '예수께서 가라사대 내가 곧 길이요 진리요 생명이니 나로 말미암지 않고는 아버지께로 올 자가 없느니라' },
+      { id: '2co5-17', ref: '고린도후서 5:17', text: '그런즉 누구든지 그리스도 안에 있으면 새로운 피조물이라 이전 것은 지나갔으니 보라 새 것이 되었도다' },
+      { id: 'jn1-1', ref: '요한복음 1:1', text: '태초에 말씀이 계시니라 이 말씀이 하나님과 함께 계셨으니 이 말씀은 곧 하나님이시니라' },
+      { id: 'rom12-2', ref: '로마서 12:2', text: '너희는 이 세대를 본받지 말고 오직 마음을 새롭게 함으로 변화를 받아 하나님의 선하시고 기뻐하시고 온전하신 뜻이 무엇인지 분별하도록 하라' },
+      { id: 'isa40-31', ref: '이사야 40:31', text: '오직 여호와를 앙망하는 자는 새 힘을 얻으리니 독수리의 날개치며 올라감 같을 것이요 달음박질하여도 곤비치 아니하겠고 걸어가도 피곤치 아니하리로다' },
+      { id: 'ps23-1-4', ref: '시편 23:1-4', text: '여호와는 나의 목자시니 내가 부족함이 없으리로다 그가 나를 푸른 초장에 누이시며 쉴만한 물가으로 인도하시는도다 내 영혼을 소생시키시고 자기 이름을 위하여 의의 길로 인도하시는도다 내가 사망의 음침한 골짜기로 다닐지라도 해를 두려워 않을 것은 주께서 나와 함께 하심이라 주의 지팡이와 막대기가 나를 안위하시나이다' },
+      { id: '1co13-4', ref: '고린도전서 13:4-7', text: '사랑은 오래 참고 사랑은 온유하며 투기하는 자가 되지 아니하며 사랑은 자랑하지 아니하며 교만하지 아니하며 무례히 행치 아니하며 자기의 유익을 구치 아니하며 성내지 아니하며 악한 것을 생각지 아니하며 불의를 기뻐하지 아니하며 진리와 함께 기뻐하고 모든 것을 참으며 모든 것을 믿으며 모든 것을 바라며 모든 것을 견디느니라' }
     ]
   };
 
@@ -492,7 +538,7 @@
     result: $('result'), rRef: $('rRef'), rFinal: $('rFinal'), rFormula: $('rFormula'),
     rTime: $('rTime'), rAcc: $('rAcc'), rErr: $('rErr'), rDel: $('rDel'), rKpm: $('rKpm'),
     rAccChip: $('rAccChip'), rErrChip: $('rErrChip'), rDelChip: $('rDelChip'),
-    againBtn: $('againBtn')
+    againBtn: $('againBtn'), themeLight: $('themeLight'), themeDark: $('themeDark')
   };
 
   // ---------- storage (optional convenience) ----------
@@ -574,8 +620,17 @@
     return { status: status, end: end, ok: ok, errors: bad + miss + extra, extra: extra };
   }
 
+  // ---------- theme ----------
+  function setTheme(th) {
+    document.documentElement.setAttribute('data-theme', th);
+    el.themeLight.setAttribute('aria-pressed', String(th === 'light'));
+    el.themeDark.setAttribute('aria-pressed', String(th === 'dark'));
+    save('theme', th);
+  }
+
   // ---------- init ----------
   function init() {
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
     document.documentElement.lang = S.lang;
     document.querySelectorAll('[data-i18n]').forEach(function (n) { n.innerHTML = t(n.getAttribute('data-i18n')); });
     document.querySelectorAll('[data-i18n-ph]').forEach(function (n) { n.placeholder = t(n.getAttribute('data-i18n-ph')); });
@@ -592,10 +647,25 @@
   function buildSelect() {
     el.verse.textContent = '';
     var n = t('preview');
-    VERSES[S.lang].forEach(function (v) {
-      var o = document.createElement('option');
-      o.value = v.id; o.textContent = v.ref + ' — ' + v.text.slice(0, n) + '…';
-      el.verse.appendChild(o);
+    var groups = [
+      { label: '짧은 말씀 (40자 미만)', max: 40 },
+      { label: '보통 말씀 (40~79자)', max: 80 },
+      { label: '긴 말씀 (80자 이상)', max: Infinity }
+    ];
+    var sorted = VERSES[S.lang].slice().sort(function (a, b) { return a.text.length - b.text.length; });
+    var min = 0;
+    groups.forEach(function (g) {
+      var og = document.createElement('optgroup');
+      og.label = g.label;
+      sorted.forEach(function (v) {
+        if (v.text.length < min || v.text.length >= g.max) return;
+        var o = document.createElement('option');
+        o.value = v.id;
+        o.textContent = v.ref + ' (' + v.text.length + '자) — ' + v.text.slice(0, n) + '…';
+        og.appendChild(o);
+      });
+      min = g.max;
+      if (og.children.length) el.verse.appendChild(og);
     });
     var o = document.createElement('option');
     o.value = 'custom'; o.textContent = t('customOpt');
@@ -825,6 +895,8 @@
     save('verse:' + S.lang, el.verse.value); applyVerse();
     if (el.verse.value !== 'custom' || S.target) el.typer.focus();
   });
+  el.themeLight.addEventListener('click', function () { setTheme('light'); });
+  el.themeDark.addEventListener('click', function () { setTheme('dark'); });
   el.penalty.addEventListener('change', function () { save('penalty', el.penalty.value); });
   el.customRef.addEventListener('input', function () { save('customRef:' + S.lang, el.customRef.value); applyVerse(); });
   el.customText.addEventListener('input', function () { save('customText:' + S.lang, el.customText.value); applyVerse(); });
