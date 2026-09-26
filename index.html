@@ -190,6 +190,20 @@
     justify-content: space-between;
     gap: 12px;
   }
+  .ref-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-width: 0; }
+  .tags { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    padding: 1px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .tag.fruit { background: var(--good-soft); border-color: transparent; color: var(--good); }
+  .tag[data-size="긴"] { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
   .ref {
     font-family: var(--serif);
     font-weight: 700;
@@ -421,7 +435,10 @@
 
   <section class="card" aria-label="따라 칠 말씀">
     <div class="card-head">
-      <span class="ref" id="ref"></span>
+      <div class="ref-line">
+        <span class="ref" id="ref"></span>
+        <span class="tags" id="tags"></span>
+      </div>
       <span class="pill" id="pill" data-state="idle">대기 중</span>
     </div>
     <p class="verse" id="target" aria-live="off"></p>
@@ -502,6 +519,55 @@
     ]
   };
 
+  // 성령의 아홉 가지 열매 (갈라디아서 5:22-23) — 열매마다 짧음·중간·긴 말씀
+  var FRUITS = ['사랑', '희락', '화평', '오래 참음', '자비', '양선', '충성', '온유', '절제'];
+  var FRUIT_VERSES = [
+    { id: 'gal5-22', fruit: '성령의 열매', ref: '갈라디아서 5:22-23', text: '오직 성령의 열매는 사랑과 희락과 화평과 오래 참음과 자비와 양선과 충성과 온유와 절제니 이같은 것을 금지할 법이 없느니라' },
+
+    { id: 'f-love-s', fruit: '사랑', size: '짧음', ref: '요한일서 4:19', text: '우리가 사랑함은 그가 먼저 우리를 사랑하셨음이라' },
+    { id: 'f-love-m', fruit: '사랑', size: '중간', ref: '요한복음 13:34', text: '새 계명을 너희에게 주노니 서로 사랑하라 내가 너희를 사랑한 것 같이 너희도 서로 사랑하라' },
+    // 긴 말씀: 고린도전서 13:4-7 (아래에서 태그만 붙임)
+
+    { id: 'f-joy-s', fruit: '희락', size: '짧음', ref: '빌립보서 4:4', text: '주 안에서 항상 기뻐하라 내가 다시 말하노니 기뻐하라' },
+    // 중간 말씀: 데살로니가전서 5:16-18 (아래에서 태그만 붙임)
+    { id: 'f-joy-l', fruit: '희락', size: '긴', ref: '하박국 3:17-18', text: '비록 무화과나무가 무성치 못하며 포도나무에 열매가 없으며 감람나무에 소출이 없으며 밭에 식물이 없으며 우리에 양이 없으며 외양간에 소가 없을지라도 나는 여호와를 인하여 즐거워하며 나의 구원의 하나님을 인하여 기뻐하리로다' },
+
+    { id: 'f-peace-s', fruit: '화평', size: '짧음', ref: '로마서 12:18', text: '할 수 있거든 너희로서는 모든 사람으로 더불어 평화하라' },
+    { id: 'f-peace-m', fruit: '화평', size: '중간', ref: '마태복음 5:9', text: '화평케 하는 자는 복이 있나니 저희가 하나님의 아들이라 일컬음을 받을 것임이요' },
+    { id: 'f-peace-l', fruit: '화평', size: '긴', ref: '요한복음 14:27', text: '평안을 너희에게 끼치노니 곧 나의 평안을 너희에게 주노라 내가 너희에게 주는 것은 세상이 주는 것과 같지 아니하니라 너희는 마음에 근심도 말고 두려워하지도 말라' },
+
+    { id: 'f-pat-s', fruit: '오래 참음', size: '짧음', ref: '로마서 12:12', text: '소망 중에 즐거워하며 환난 중에 참으며 기도에 항상 힘쓰며' },
+    { id: 'f-pat-m', fruit: '오래 참음', size: '중간', ref: '야고보서 5:7', text: '그러므로 형제들아 주의 강림하시기까지 길이 참으라 보라 농부가 땅에서 나는 귀한 열매를 바라고 길이 참아 이른 비와 늦은 비를 기다리나니' },
+    { id: 'f-pat-l', fruit: '오래 참음', size: '긴', ref: '야고보서 1:2-4', text: '내 형제들아 너희가 여러가지 시험을 만나거든 온전히 기쁘게 여기라 이는 너희 믿음의 시련이 인내를 만들어 내는 줄 너희가 앎이라 인내를 온전히 이루라 이는 너희로 온전하고 구비하여 조금도 부족함이 없게 하려 함이라' },
+
+    { id: 'f-kind-s', fruit: '자비', size: '짧음', ref: '누가복음 6:36', text: '너희 아버지의 자비하심 같이 너희도 자비하라' },
+    { id: 'f-kind-m', fruit: '자비', size: '중간', ref: '에베소서 4:32', text: '서로 인자하게 하며 불쌍히 여기며 서로 용서하기를 하나님이 그리스도 안에서 너희를 용서하심과 같이 하라' },
+    { id: 'f-kind-l', fruit: '자비', size: '긴', ref: '골로새서 3:12-13', text: '그러므로 너희는 하나님의 택하신 거룩하고 사랑하신 자처럼 긍휼과 자비와 겸손과 온유와 오래 참음을 옷 입고 누가 누구에게 혐의가 있거든 서로 용납하여 피차 용서하되 주께서 너희를 용서하신 것과 같이 너희도 그리하고' },
+
+    { id: 'f-good-s', fruit: '양선', size: '짧음', ref: '로마서 12:21', text: '악에게 지지 말고 선으로 악을 이기라' },
+    { id: 'f-good-m', fruit: '양선', size: '중간', ref: '마태복음 5:16', text: '이같이 너희 빛을 사람 앞에 비취게 하여 저희로 너희 착한 행실을 보고 하늘에 계신 너희 아버지께 영광을 돌리게 하라' },
+    { id: 'f-good-l', fruit: '양선', size: '긴', ref: '에베소서 2:10', text: '우리는 그의 만드신 바라 그리스도 예수 안에서 선한 일을 위하여 지으심을 받은 자니 이 일은 하나님이 전에 예비하사 우리로 그 가운데서 행하게 하려 하심이니라' },
+
+    { id: 'f-faith-s', fruit: '충성', size: '짧음', ref: '고린도전서 4:2', text: '그리고 맡은 자들에게 구할 것은 충성이니라' },
+    { id: 'f-faith-m', fruit: '충성', size: '중간', ref: '누가복음 16:10', text: '지극히 작은 것에 충성된 자는 큰 것에도 충성되고 지극히 작은 것에 불의한 자는 큰 것에도 불의하니라' },
+    { id: 'f-faith-l', fruit: '충성', size: '긴', ref: '마태복음 25:21', text: '그 주인이 이르되 잘하였도다 착하고 충성된 종아 네가 작은 일에 충성하였으매 많은 것으로 네게 맡기리니 네 주인의 즐거움에 참예할지어다 하고' },
+
+    { id: 'f-gentle-s', fruit: '온유', size: '짧음', ref: '마태복음 5:5', text: '온유한 자는 복이 있나니 저희가 땅을 기업으로 받을 것임이요' },
+    { id: 'f-gentle-m', fruit: '온유', size: '중간', ref: '에베소서 4:2-3', text: '모든 겸손과 온유로 하고 오래 참음으로 사랑 가운데서 서로 용납하고 평안의 매는 줄로 성령의 하나 되게 하신 것을 힘써 지키라' },
+    { id: 'f-gentle-l', fruit: '온유', size: '긴', ref: '마태복음 11:28-30', text: '수고하고 무거운 짐 진 자들아 다 내게로 오라 내가 너희를 쉬게 하리라 나는 마음이 온유하고 겸손하니 나의 멍에를 메고 내게 배우라 그리하면 너희 마음이 쉼을 얻으리니 이는 내 멍에는 쉽고 내 짐은 가벼움이라 하시니라' },
+
+    { id: 'f-self-s', fruit: '절제', size: '짧음', ref: '베드로전서 4:7', text: '만물의 마지막이 가까웠으니 그러므로 너희는 정신을 차리고 근신하여 기도하라' },
+    { id: 'f-self-m', fruit: '절제', size: '중간', ref: '잠언 16:32', text: '노하기를 더디하는 자는 용사보다 낫고 자기의 마음을 다스리는 자는 성을 빼앗는 자보다 나으니라' },
+    { id: 'f-self-l', fruit: '절제', size: '긴', ref: '고린도전서 9:25-27', text: '이기기를 다투는 자마다 모든 일에 절제하나니 저희는 썩을 면류관을 얻고자 하되 우리는 썩지 아니할 것을 얻고자 하노라 그러므로 내가 달음질하기를 향방 없는 것 같이 아니하고 싸우기를 허공을 치는 것 같이 아니하여 내가 내 몸을 쳐 복종하게 함은 내가 남에게 전파한 후에 자기가 도리어 버림이 될까 두려워함이로다' }
+  ];
+  VERSES.ko.forEach(function (v) {
+    if (v.id === '1co13-4') { v.fruit = '사랑'; v.size = '긴'; }
+    if (v.id === '1th5-16') { v.fruit = '희락'; v.size = '중간'; }
+  });
+  VERSES.ko = VERSES.ko.concat(FRUIT_VERSES);
+  var SIZES = ['짧음', '중간', '긴'];
+  function sizeOf(v) { return v.size || (v.text.length < 40 ? '짧음' : v.text.length < 80 ? '중간' : '긴'); }
+
   var T = {
     ko: {
       eyebrow: '1 : 1 말씀 타자',
@@ -533,7 +599,7 @@
   var el = {
     verse: $('verse'), penalty: $('penalty'),
     custom: $('custom'), customRef: $('customRef'), customText: $('customText'),
-    ref: $('ref'), pill: $('pill'), target: $('target'), typer: $('typer'), hint: $('hint'),
+    ref: $('ref'), tags: $('tags'), pill: $('pill'), target: $('target'), typer: $('typer'), hint: $('hint'),
     sTime: $('sTime'), sAcc: $('sAcc'), sErr: $('sErr'), sDel: $('sDel'),
     result: $('result'), rRef: $('rRef'), rFinal: $('rFinal'), rFormula: $('rFormula'),
     rTime: $('rTime'), rAcc: $('rAcc'), rErr: $('rErr'), rDel: $('rDel'), rKpm: $('rKpm'),
@@ -647,29 +713,46 @@
   function buildSelect() {
     el.verse.textContent = '';
     var n = t('preview');
-    var groups = [
-      { label: '짧은 말씀 (40자 미만)', max: 40 },
-      { label: '보통 말씀 (40~79자)', max: 80 },
-      { label: '긴 말씀 (80자 이상)', max: Infinity }
-    ];
-    var sorted = VERSES[S.lang].slice().sort(function (a, b) { return a.text.length - b.text.length; });
-    var min = 0;
-    groups.forEach(function (g) {
+    var list = VERSES[S.lang];
+    function addGroup(label, items, withFruit) {
+      if (!items.length) return;
       var og = document.createElement('optgroup');
-      og.label = g.label;
-      sorted.forEach(function (v) {
-        if (v.text.length < min || v.text.length >= g.max) return;
+      og.label = label;
+      items.forEach(function (v) {
         var o = document.createElement('option');
+        var tag = v.fruit === '성령의 열매' ? '' : '[' + sizeOf(v) + '] ';
         o.value = v.id;
-        o.textContent = v.ref + ' (' + v.text.length + '자) — ' + v.text.slice(0, n) + '…';
+        o.textContent = tag + v.ref + ' (' + v.text.length + '자) — ' + v.text.slice(0, n) + '…';
         og.appendChild(o);
       });
-      min = g.max;
-      if (og.children.length) el.verse.appendChild(og);
+      el.verse.appendChild(og);
+    }
+    function bySize(a, b) { return SIZES.indexOf(sizeOf(a)) - SIZES.indexOf(sizeOf(b)) || a.text.length - b.text.length; }
+
+    addGroup('성령의 열매 · 갈라디아서 5:22-23', list.filter(function (v) { return v.fruit === '성령의 열매'; }));
+    FRUITS.forEach(function (f) {
+      addGroup('열매: ' + f, list.filter(function (v) { return v.fruit === f; }).sort(bySize));
     });
+    addGroup('그 밖의 말씀', list.filter(function (v) { return !v.fruit; }).sort(bySize));
     var o = document.createElement('option');
     o.value = 'custom'; o.textContent = t('customOpt');
     el.verse.appendChild(o);
+  }
+
+  function renderTags(v) {
+    el.tags.textContent = '';
+    if (!v) return;
+    if (v.fruit) {
+      var f = document.createElement('span');
+      f.className = 'tag fruit';
+      f.textContent = v.fruit === '성령의 열매' ? '성령의 열매' : '열매 · ' + v.fruit;
+      el.tags.appendChild(f);
+    }
+    var z = document.createElement('span');
+    z.className = 'tag';
+    z.dataset.size = sizeOf(v);
+    z.textContent = sizeOf(v) + ' · ' + v.text.length + '자';
+    el.tags.appendChild(z);
   }
 
   function applyVerse() {
@@ -678,11 +761,13 @@
       el.custom.hidden = false;
       S.ref = normalize(el.customRef.value) || t('customRefDefault');
       S.target = normalize(el.customText.value);
+      renderTags(S.target ? { text: S.target } : null);
     } else {
       el.custom.hidden = true;
       var list = VERSES[S.lang];
       var v = list.filter(function (x) { return x.id === id; })[0] || list[0];
       S.ref = v.ref; S.target = v.text;
+      renderTags(v);
     }
     el.ref.textContent = S.ref;
     var frag = document.createDocumentFragment();
