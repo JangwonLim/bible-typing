@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>말씀 타자 대결</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #F3F4F8;
+    --surface: #FFFFFF;
+    --ink: #1A1E2C;
+    --muted: #62677D;
+    --pending: #8C91A6;
+    --line: #DFE1EA;
+    --accent: #3240A8;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #E3E6FA;
+    --bad: #C22A38;
+    --bad-soft: #FBE1E4;
+    --good: #16775F;
+    --good-soft: #DDF2EA;
+    --serif: "Gowun Batang", "AppleMyungjo", "Nanum Myeongjo", "Batang", serif;
+    --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #10121A;
+      --surface: #191C27;
+      --ink: #ECEEF5;
+      --muted: #A0A5BA;
+      --pending: #7A7F96;
+      --line: #2B2F3E;
+      --accent: #9DA8FF;
+      --accent-ink: #10121A;
+      --accent-soft: #252A4A;
+      --bad: #FF7581;
+      --bad-soft: #43202A;
+      --good: #5FD3AF;
+      --good-soft: #173A31;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #10121A;
+    --surface: #191C27;
+    --ink: #ECEEF5;
+    --muted: #A0A5BA;
+    --pending: #7A7F96;
+    --line: #2B2F3E;
+    --accent: #9DA8FF;
+    --accent-ink: #10121A;
+    --accent-soft: #252A4A;
+    --bad: #FF7581;
+    --bad-soft: #43202A;
+    --good: #5FD3AF;
+    --good-soft: #173A31;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 28px 56px;
+    display: grid;
+    gap: 20px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px 24px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin: 0 0 4px;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: clamp(28px, 5vw, 38px);
+    line-height: 1.15;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .rule {
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .rule b { color: var(--ink); font-weight: 600; }
+  .rule .op { font-family: var(--mono); color: var(--pending); }
+
+  /* Setup */
+  .setup {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    gap: 12px;
+  }
+  .field { display: grid; gap: 6px; min-width: 0; }
+  .field label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  input[type="text"], select, .custom textarea {
+    width: 100%;
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  select { appearance: auto; cursor: pointer; }
+  input[type="text"]:focus-visible, select:focus-visible, .custom textarea:focus-visible, button:focus-visible {
+    outline: 3px solid var(--accent-soft);
+    border-color: var(--accent);
+    outline-offset: 0;
+  }
+  .custom {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    gap: 12px;
+  }
+  .custom textarea { font-family: var(--serif); resize: vertical; min-height: 64px; }
+
+  /* Verse card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px 26px 26px;
+    display: grid;
+    gap: 14px;
+  }
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .ref {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--accent);
+  }
+  .pill {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .pill[data-state="idle"] { background: var(--line); color: var(--muted); }
+  .pill[data-state="done"] { background: var(--good-soft); color: var(--good); }
+
+  .verse {
+    font-family: var(--serif);
+    font-size: clamp(21px, 3.2vw, 27px);
+    line-height: 1.95;
+    white-space: pre-wrap;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    color: var(--pending);
+    margin: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .verse span { border-radius: 3px; transition: background-color .08s; }
+  .verse .ok { color: var(--ink); }
+  .verse .bad { color: var(--bad); background: var(--bad-soft); text-decoration: underline wavy var(--bad) 1px; text-underline-offset: 6px; }
+  .verse .miss { color: var(--bad); text-decoration: line-through 2px; background: var(--bad-soft); }
+  .verse .cur { background: var(--accent-soft); color: var(--ink); box-shadow: inset 0 -3px 0 var(--accent); }
+
+  .typing { display: grid; gap: 8px; }
+  #typer {
+    width: 100%;
+    font-family: var(--serif);
+    font-size: clamp(19px, 2.8vw, 23px);
+    line-height: 1.7;
+    color: var(--ink);
+    background: var(--bg);
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    resize: none;
+    min-height: 120px;
+  }
+  #typer:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  #typer:disabled { opacity: 1; color: var(--muted); }
+  #typer::placeholder { color: var(--pending); font-family: var(--sans); font-size: 16px; }
+  .hint {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  kbd {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .warn { color: var(--bad); font-weight: 600; }
+
+  /* Live stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .stat { padding: 14px 18px; display: grid; gap: 2px; }
+  .stat + .stat { border-left: 1px solid var(--line); }
+  .stat .k { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: var(--muted); }
+  .stat .v {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 26px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .stat .v small { font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 3px; }
+
+  /* Result */
+  .result {
+    border: 2px solid var(--accent);
+    border-radius: 18px;
+    background: var(--surface);
+    padding: 24px 26px;
+    display: grid;
+    gap: 18px;
+  }
+  .result-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .who { font-size: 14px; color: var(--muted); margin: 0 0 2px; }
+  .who { font-family: var(--serif); font-weight: 700; font-size: 18px; color: var(--ink); }
+  .final-label { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--accent); }
+  .final {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: clamp(48px, 10vw, 72px);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .final small { font-family: var(--sans); font-size: 0.35em; font-weight: 600; margin-left: 4px; letter-spacing: 0; }
+  .formula {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    margin-top: 8px;
+  }
+  .breakdown {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .chip {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: grid;
+    gap: 2px;
+  }
+  .chip .k { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .chip .v { font-family: var(--mono); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .chip.perfect .v { color: var(--good); }
+  .chip.has-err .v { color: var(--bad); }
+  .result-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  button {
+    font: inherit;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 10px;
+    padding: 10px 18px;
+    cursor: pointer;
+    border: 1.5px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button:hover { filter: brightness(0.96); }
+
+
+  @media (max-width: 720px) {
+    .setup { grid-template-columns: 1fr; }
+    .custom { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat:nth-child(3) { border-left: 0; }
+    .stat:nth-child(n+3) { border-top: 1px solid var(--line); }
+    .breakdown { grid-template-columns: repeat(2, 1fr); }
+    .card, .result { padding-inline: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .verse span { transition: none; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow" data-i18n="eyebrow">1 : 1 말씀 타자</p>
+      <h1 data-i18n="h1">말씀 타자 대결</h1>
+    </div>
+    <div class="rule" data-i18n="rule">
+        <b>최종 기록</b><span class="op">=</span>걸린 시간<span class="op">+</span>(오타 + 지운 횟수) × 벌점<span class="op">·</span>짧은 사람이 승리
+      </div>
+  </header>
+
+  <section class="setup" aria-label="대결 설정">
+    <div class="field field-verse">
+      <label for="verse" data-i18n="lblVerse">말씀</label>
+      <select id="verse"></select>
+    </div>
+    <div class="field">
+      <label for="penalty" data-i18n="lblPenalty">오타·지움 1회당 벌점</label>
+      <select id="penalty">
+        <option value="0" data-i18n="pen0">없음 (시간만 비교)</option>
+        <option value="0.5" data-i18n="pen05">+0.5초</option>
+        <option value="1" selected data-i18n="pen1">+1초</option>
+        <option value="2" data-i18n="pen2">+2초</option>
+        <option value="3" data-i18n="pen3">+3초</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="custom" id="custom" hidden aria-label="직접 입력할 말씀">
+    <div class="field">
+      <label for="customRef" data-i18n="lblCustomRef">구절</label>
+      <input type="text" id="customRef" placeholder="예: 시편 1:1" data-i18n-ph="phCustomRef" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="customText" data-i18n="lblCustomText">말씀 본문 (두 노트북에 똑같이 넣어 주세요)</label>
+      <textarea id="customText" rows="2" placeholder="대결할 말씀을 붙여넣거나 입력하세요" data-i18n-ph="phCustomText"></textarea>
+    </div>
+  </section>
+
+  <section class="card" aria-label="따라 칠 말씀">
+    <div class="card-head">
+      <span class="ref" id="ref"></span>
+      <span class="pill" id="pill" data-state="idle">대기 중</span>
+    </div>
+    <p class="verse" id="target" aria-live="off"></p>
+    <div class="typing">
+      <textarea id="typer" rows="3" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
+        placeholder="여기를 누르고 첫 글자를 치는 순간 시간이 시작됩니다" data-i18n-ph="phTyper" aria-label="말씀 입력"></textarea>
+      <div class="hint" id="hint">
+        <span data-i18n="hEnter"><kbd>Enter</kbd> 제출</span>
+        <span data-i18n="hEsc"><kbd>Esc</kbd> 처음부터 다시</span>
+        <span data-i18n="hAuto">끝까지 똑같이 치면 자동으로 끝나요</span>
+        <span data-i18n="hDel">지우면(Backspace) 지운 횟수로 벌점</span>
+        <span data-i18n="hPaste">붙여넣기는 막혀 있어요</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats" aria-label="실시간 기록">
+    <div class="stat"><span class="k" data-i18n="stTime">시간</span><span class="v" id="sTime">0.00<small>초</small></span></div>
+    <div class="stat"><span class="k" data-i18n="stErr">오타</span><span class="v" id="sErr">0<small>개</small></span></div>
+    <div class="stat"><span class="k" data-i18n="stDel">지운 횟수</span><span class="v" id="sDel">0<small>회</small></span></div>
+    <div class="stat"><span class="k" data-i18n="stAcc">정확도</span><span class="v" id="sAcc">100<small>%</small></span></div>
+  </section>
+
+  <section class="result" id="result" hidden aria-live="polite">
+    <div class="result-top">
+      <div>
+        <p class="who" id="rRef"></p>
+        <div class="final-label" data-i18n="finalLabel">최종 기록</div>
+        <div class="final" id="rFinal">0.00<small>초</small></div>
+        <div class="formula" id="rFormula"></div>
+      </div>
+      <button class="primary" id="againBtn" type="button" data-i18n="again">다시 하기</button>
+    </div>
+    <div class="breakdown">
+      <div class="chip"><span class="k" data-i18n="stTime">걸린 시간</span><span class="v" id="rTime">0.00초</span></div>
+      <div class="chip" id="rErrChip"><span class="k" data-i18n="rcErr">남은 오타</span><span class="v" id="rErr">0개</span></div>
+      <div class="chip" id="rDelChip"><span class="k" data-i18n="stDel">지운 횟수</span><span class="v" id="rDel">0회</span></div>
+      <div class="chip" id="rAccChip"><span class="k" data-i18n="stAcc">정확도</span><span class="v" id="rAcc">100%</span></div>
+    </div>
+    <div class="result-foot">
+      <span data-i18n="legend">위 말씀에서 빨간 글자가 틀린 곳, 줄 그은 글자가 빠뜨린 곳이에요.</span>
+      <span id="rKpm"></span>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  // 개역한글 본문 (공개 저작물)
+  var VERSES = {
+    ko: [
+      { id: 'jn3-16', ref: '요한복음 3:16', text: '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 저를 믿는 자마다 멸망치 않고 영생을 얻게 하려 하심이니라' },
+      { id: 'ps23-1', ref: '시편 23:1', text: '여호와는 나의 목자시니 내가 부족함이 없으리로다' },
+      { id: 'php4-13', ref: '빌립보서 4:13', text: '내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라' },
+      { id: 'mt11-28', ref: '마태복음 11:28', text: '수고하고 무거운 짐 진 자들아 다 내게로 오라 내가 너희를 쉬게 하리라' },
+      { id: '1th5-16', ref: '데살로니가전서 5:16-18', text: '항상 기뻐하라 쉬지 말고 기도하라 범사에 감사하라 이는 그리스도 예수 안에서 너희를 향하신 하나님의 뜻이니라' },
+      { id: 'jer33-3', ref: '예레미야 33:3', text: '너는 내게 부르짖으라 내가 네게 응답하겠고 네가 알지 못하는 크고 비밀한 일을 네게 보이리라' },
+      { id: 'pr3-5', ref: '잠언 3:5-6', text: '너는 마음을 다하여 여호와를 의뢰하고 네 명철을 의지하지 말라 너는 범사에 그를 인정하라 그리하면 네 길을 지도하시리라' },
+      { id: 'rom8-28', ref: '로마서 8:28', text: '우리가 알거니와 하나님을 사랑하는 자 곧 그 뜻대로 부르심을 입은 자들에게는 모든 것이 합력하여 선을 이루느니라' },
+      { id: 'jos1-9', ref: '여호수아 1:9', text: '내가 네게 명한 것이 아니냐 마음을 강하게 하고 담대히 하라 두려워 말며 놀라지 말라 네가 어디로 가든지 네 하나님 여호와가 너와 함께 하느니라 하시니라' },
+      { id: 'isa41-10', ref: '이사야 41:10', text: '두려워 말라 내가 너와 함께 함이니라 놀라지 말라 나는 네 하나님이 됨이니라 내가 너를 굳세게 하리라 참으로 너를 도와 주리라 참으로 나의 의로운 오른손으로 너를 붙들리라' },
+      { id: 'gal2-20', ref: '갈라디아서 2:20', text: '내가 그리스도와 함께 십자가에 못 박혔나니 그런즉 이제는 내가 사는 것이 아니요 오직 내 안에 그리스도께서 사신 것이라 이제 내가 육체 가운데 사는 것은 나를 사랑하사 나를 위하여 자기 몸을 버리신 하나님의 아들을 믿는 믿음 안에서 사는 것이라' }
+    ]
+  };
+
+  var T = {
+    ko: {
+      eyebrow: '1 : 1 말씀 타자',
+      h1: '말씀 타자 대결',
+      rule: '<b>최종 기록</b><span class="op">=</span>걸린 시간<span class="op">+</span>(오타 + 지운 횟수) × 벌점<span class="op">·</span>짧은 사람이 승리',
+      lblVerse: '말씀', lblPenalty: '오타·지움 1회당 벌점',
+      pen0: '없음 (시간만 비교)', pen05: '+0.5초', pen1: '+1초', pen2: '+2초', pen3: '+3초',
+      lblCustomRef: '구절', lblCustomText: '말씀 본문 (두 노트북에 똑같이 넣어 주세요)',
+      phCustomRef: '예: 시편 1:1', phCustomText: '대결할 말씀을 붙여넣거나 입력하세요',
+      phTyper: '여기를 누르고 첫 글자를 치는 순간 시간이 시작됩니다',
+      hEnter: '<kbd>Enter</kbd> 제출', hEsc: '<kbd>Esc</kbd> 처음부터 다시',
+      hAuto: '끝까지 똑같이 치면 자동으로 끝나요', hDel: '지우면(Backspace) 지운 횟수로 벌점', hPaste: '붙여넣기는 막혀 있어요',
+      stTime: '시간', stErr: '오타', stDel: '지운 횟수', stAcc: '정확도',
+      finalLabel: '최종 기록', again: '다시 하기', rcErr: '남은 오타',
+      legend: '위 말씀에서 빨간 글자가 틀린 곳, 줄 그은 글자가 빠뜨린 곳이에요.',
+      customOpt: '직접 입력하기', customRefDefault: '직접 입력한 말씀', emptyCustom: '위에 말씀 본문을 넣으면 여기에 나타나요.',
+      idle: '대기 중', run: '입력 중', done: '완료',
+      warnShort: '아직 끝나지 않았어요. 말씀을 끝까지 입력한 뒤 Enter를 누르세요.',
+      warnPaste: '붙여넣기는 할 수 없어요. 직접 입력해 주세요.',
+      uSec: '초', uErr: '개', uDel: '회',
+      formula: function (secs, errs, dels, pen) { return secs + '초 + (오타 ' + errs + ' + 지움 ' + dels + ') × ' + pen + '초'; },
+      noPenalty: '벌점 없음 · 시간만 비교',
+      speed: function (secs, typed) { return '타수 ' + (secs > 0 ? Math.round(keystrokes(typed) / (secs / 60)) : 0) + '타/분'; },
+      preview: 16
+    }
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var el = {
+    verse: $('verse'), penalty: $('penalty'),
+    custom: $('custom'), customRef: $('customRef'), customText: $('customText'),
+    ref: $('ref'), pill: $('pill'), target: $('target'), typer: $('typer'), hint: $('hint'),
+    sTime: $('sTime'), sAcc: $('sAcc'), sErr: $('sErr'), sDel: $('sDel'),
+    result: $('result'), rRef: $('rRef'), rFinal: $('rFinal'), rFormula: $('rFormula'),
+    rTime: $('rTime'), rAcc: $('rAcc'), rErr: $('rErr'), rDel: $('rDel'), rKpm: $('rKpm'),
+    rAccChip: $('rAccChip'), rErrChip: $('rErrChip'), rDelChip: $('rDelChip'),
+    againBtn: $('againBtn')
+  };
+
+  // ---------- storage (optional convenience) ----------
+  function load(key, fallback) {
+    try { var v = localStorage.getItem('bt:' + key); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem('bt:' + key, JSON.stringify(value)); } catch (e) {}
+  }
+
+  // ---------- state ----------
+  var S = {
+    lang: 'ko', target: '', ref: '',
+    startT: 0, endT: 0, running: false, finished: false,
+    composing: false, pendingFinish: false, raf: 0,
+    spans: [], dels: 0
+  };
+  function t(k) { return T[S.lang][k]; }
+
+  function normalize(s) { return (s || '').replace(/\s+/g, ' ').trim(); }
+
+  // 한글 타수: 자모 키 입력 수 (겹모음·겹받침은 2타)
+  var COMPLEX_V = { 9: 1, 10: 1, 11: 1, 14: 1, 15: 1, 16: 1, 19: 1 };
+  var COMPLEX_J = { 3: 1, 5: 1, 6: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1, 15: 1, 18: 1 };
+  var COMPLEX_COMPAT = 'ㄳㄵㄶㄺㄻㄼㄽㄾㄿㅀㅄㅘㅙㅚㅝㅞㅟㅢ';
+  function keystrokes(str) {
+    var n = 0;
+    for (var i = 0; i < str.length; i++) {
+      var c = str.charCodeAt(i);
+      if (c >= 0xAC00 && c <= 0xD7A3) {
+        var s = c - 0xAC00, jung = Math.floor((s % 588) / 28), jong = s % 28;
+        n += 1 + (COMPLEX_V[jung] ? 2 : 1) + (jong === 0 ? 0 : (COMPLEX_J[jong] ? 2 : 1));
+      } else {
+        n += COMPLEX_COMPAT.indexOf(str[i]) >= 0 ? 2 : 1;
+      }
+    }
+    return n;
+  }
+
+  // 입력과 말씀을 편집 거리로 맞춰서, 한 글자를 빠뜨려도 뒤가 전부 틀린 걸로 처리되지 않게 함
+  function align(a, b, full) {
+    var n = a.length, m = b.length, W = m + 1;
+    var D = new Int32Array((n + 1) * W);
+    var i, j;
+    for (j = 0; j <= m; j++) D[j] = j;
+    for (i = 1; i <= n; i++) {
+      D[i * W] = i;
+      for (j = 1; j <= m; j++) {
+        var s = D[(i - 1) * W + j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1);
+        var u = D[(i - 1) * W + j] + 1;
+        var l = D[i * W + j - 1] + 1;
+        D[i * W + j] = s < u ? (s < l ? s : l) : (u < l ? u : l);
+      }
+    }
+    var end = m;
+    if (!full) {
+      var best = Infinity;
+      for (j = 0; j <= m; j++) {
+        var key = D[n * W + j] * 100000 + Math.abs(j - n);
+        if (key < best) { best = key; end = j; }
+      }
+    }
+    var status = new Array(m);
+    var ok = 0, bad = 0, miss = 0, extra = 0;
+    i = n; j = end;
+    while (i > 0 || j > 0) {
+      var cur = D[i * W + j];
+      if (i > 0 && j > 0) {
+        var same = a[i - 1] === b[j - 1];
+        if (cur === D[(i - 1) * W + j - 1] + (same ? 0 : 1)) {
+          status[j - 1] = same ? 'ok' : 'bad';
+          if (same) ok++; else bad++;
+          i--; j--; continue;
+        }
+      }
+      if (i > 0 && cur === D[(i - 1) * W + j] + 1) { extra++; i--; continue; }
+      status[j - 1] = 'miss'; miss++; j--;
+    }
+    return { status: status, end: end, ok: ok, errors: bad + miss + extra, extra: extra };
+  }
+
+  // ---------- init ----------
+  function init() {
+    document.documentElement.lang = S.lang;
+    document.querySelectorAll('[data-i18n]').forEach(function (n) { n.innerHTML = t(n.getAttribute('data-i18n')); });
+    document.querySelectorAll('[data-i18n-ph]').forEach(function (n) { n.placeholder = t(n.getAttribute('data-i18n-ph')); });
+    el.customRef.value = load('customRef:' + S.lang, '');
+    el.customText.value = load('customText:' + S.lang, '');
+    buildSelect();
+    var list = VERSES[S.lang];
+    el.verse.value = load('verse:' + S.lang, list[0].id);
+    if (!el.verse.value) el.verse.value = list[0].id;
+    applyVerse();
+  }
+
+  // ---------- verse selection ----------
+  function buildSelect() {
+    el.verse.textContent = '';
+    var n = t('preview');
+    VERSES[S.lang].forEach(function (v) {
+      var o = document.createElement('option');
+      o.value = v.id; o.textContent = v.ref + ' — ' + v.text.slice(0, n) + '…';
+      el.verse.appendChild(o);
+    });
+    var o = document.createElement('option');
+    o.value = 'custom'; o.textContent = t('customOpt');
+    el.verse.appendChild(o);
+  }
+
+  function applyVerse() {
+    var id = el.verse.value;
+    if (id === 'custom') {
+      el.custom.hidden = false;
+      S.ref = normalize(el.customRef.value) || t('customRefDefault');
+      S.target = normalize(el.customText.value);
+    } else {
+      el.custom.hidden = true;
+      var list = VERSES[S.lang];
+      var v = list.filter(function (x) { return x.id === id; })[0] || list[0];
+      S.ref = v.ref; S.target = v.text;
+    }
+    el.ref.textContent = S.ref;
+    var frag = document.createDocumentFragment();
+    S.spans = [];
+    for (var k = 0; k < S.target.length; k++) {
+      var sp = document.createElement('span');
+      sp.textContent = S.target[k];
+      frag.appendChild(sp);
+      S.spans.push(sp);
+    }
+    el.target.textContent = '';
+    if (!S.target) {
+      el.target.textContent = t('emptyCustom');
+    } else {
+      el.target.appendChild(frag);
+    }
+    reset();
+  }
+
+  // ---------- run lifecycle ----------
+  function reset() {
+    cancelAnimationFrame(S.raf);
+    S.running = false; S.finished = false; S.startT = 0; S.endT = 0;
+    S.composing = false; S.pendingFinish = false; S.dels = 0;
+    el.typer.disabled = !S.target;
+    el.typer.value = '';
+    el.result.hidden = true;
+    setPill('idle');
+    setHintWarn('');
+    render();
+    tick();
+  }
+
+  function setPill(state) {
+    el.pill.dataset.state = state;
+    el.pill.textContent = t(state);
+  }
+
+  function start() {
+    if (S.running || S.finished || !S.target) return;
+    S.running = true;
+    S.startT = performance.now();
+    setPill('run');
+    loop();
+  }
+
+  function loop() {
+    tick();
+    if (S.running) S.raf = requestAnimationFrame(loop);
+  }
+
+  function elapsed() {
+    if (!S.startT) return 0;
+    return ((S.finished ? S.endT : performance.now()) - S.startT) / 1000;
+  }
+
+  function typedText() { return el.typer.value.replace(/[\r\n]/g, ''); }
+
+  function tryFinish() {
+    if (S.finished || !S.running) return;
+    var typed = typedText();
+    if (typed.length < Math.ceil(S.target.length * 0.8)) {
+      setHintWarn(t('warnShort'));
+      return;
+    }
+    finish();
+  }
+
+  function finish() {
+    if (S.finished) return;
+    S.endT = performance.now();
+    S.finished = true; S.running = false; S.pendingFinish = false;
+    cancelAnimationFrame(S.raf);
+    var typed = typedText();
+    el.typer.disabled = true;
+    setPill('done');
+    setHintWarn('');
+
+    var r = align(typed, S.target, true);
+    paint(r, -1);
+    var secs = elapsed();
+    var penalty = parseFloat(el.penalty.value) || 0;
+    var acc = S.target.length ? (r.ok / (S.target.length + r.extra)) * 100 : 0;
+    var final = secs + (r.errors + S.dels) * penalty;
+
+    el.rRef.textContent = S.ref;
+    el.rFinal.innerHTML = final.toFixed(2) + '<small>' + t('uSec') + '</small>';
+    el.rFormula.textContent = penalty > 0 ? t('formula')(secs.toFixed(2), r.errors, S.dels, penalty) : t('noPenalty');
+    el.rTime.textContent = secs.toFixed(2) + t('uSec');
+    el.rAcc.textContent = acc.toFixed(1) + '%';
+    el.rErr.textContent = r.errors + t('uErr');
+    el.rDel.textContent = S.dels + t('uDel');
+    el.rKpm.textContent = t('speed')(secs, typed);
+    el.rAccChip.className = 'chip' + (r.errors === 0 ? ' perfect' : '');
+    el.rErrChip.className = 'chip' + (r.errors === 0 ? ' perfect' : ' has-err');
+    el.rDelChip.className = 'chip' + (S.dels === 0 ? ' perfect' : ' has-err');
+    el.result.hidden = false;
+
+    setStats(secs, acc, r.errors, S.dels);
+
+    requestAnimationFrame(function () {
+      el.result.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    });
+  }
+
+  // ---------- rendering ----------
+  function paint(r, cursorAt) {
+    for (var k = 0; k < S.spans.length; k++) {
+      var st = r.status[k];
+      S.spans[k].className = k === cursorAt ? 'cur' : (st || '');
+    }
+  }
+
+  function render() {
+    if (!S.target) { S.liveAcc = 100; S.liveErr = 0; setStats(0, 100, 0, 0); return; }
+    var typed = typedText();
+    var evalText = typed;
+    if (S.composing && typed.length) evalText = typed.slice(0, -1);
+    var r = align(evalText, S.target, false);
+    paint(r, S.finished ? -1 : r.end);
+    var denom = r.end + r.extra;
+    S.liveAcc = denom ? (r.ok / denom) * 100 : 100;
+    S.liveErr = r.errors;
+    tick();
+  }
+
+  function tick() {
+    if (S.finished) return;
+    setStats(elapsed(), S.liveAcc == null ? 100 : S.liveAcc, S.liveErr || 0, S.dels);
+  }
+
+  function setStats(secs, acc, errs, dels) {
+    el.sTime.innerHTML = secs.toFixed(2) + '<small>' + t('uSec') + '</small>';
+    el.sAcc.innerHTML = (acc >= 99.95 ? '100' : acc.toFixed(1)) + '<small>%</small>';
+    el.sErr.innerHTML = errs + '<small>' + t('uErr') + '</small>';
+    el.sDel.innerHTML = dels + '<small>' + t('uDel') + '</small>';
+  }
+
+  var warnEl = null;
+  function setHintWarn(msg) {
+    if (!warnEl || !warnEl.isConnected) { warnEl = document.createElement('span'); warnEl.className = 'warn'; el.hint.appendChild(warnEl); }
+    warnEl.textContent = msg;
+    warnEl.hidden = !msg;
+  }
+
+  // ---------- input events ----------
+  el.typer.addEventListener('compositionstart', function () { S.composing = true; start(); });
+  el.typer.addEventListener('compositionupdate', function () { S.composing = true; });
+  el.typer.addEventListener('compositionend', function () {
+    S.composing = false;
+    render();
+    checkDone();
+    if (S.pendingFinish) setTimeout(tryFinish, 0);
+    S.pendingFinish = false;
+  });
+  el.typer.addEventListener('input', function (e) {
+    if (S.finished) return;
+    if (/[\r\n]/.test(el.typer.value)) {
+      el.typer.value = typedText();
+      render();
+      tryFinish();
+      return;
+    }
+    if (e.isComposing === false) S.composing = false;
+    if (e.inputType === 'deleteByCut') S.dels++;
+    start();
+    setHintWarn('');
+    render();
+    checkDone();
+  });
+  // 지운 횟수: Backspace/Delete를 실제로 누른 횟수 (한글 조합 중 자모를 지운 것도 포함)
+  function countDelete(e) {
+    if (S.finished || !S.running) return;
+    var ta = el.typer, hasSel = ta.selectionStart !== ta.selectionEnd;
+    var back = e.code === 'Backspace' || e.key === 'Backspace';
+    var fwd = e.code === 'Delete' || e.key === 'Delete';
+    if (back && (hasSel || S.composing || ta.selectionStart > 0)) S.dels++;
+    else if (fwd && (hasSel || S.composing || ta.selectionEnd < ta.value.length)) S.dels++;
+    else return;
+    tick();
+  }
+  el.typer.addEventListener('keydown', function (e) {
+    countDelete(e);
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (e.isComposing || e.keyCode === 229) { S.pendingFinish = true; return; }
+      tryFinish();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      reset(); el.typer.focus();
+    }
+  });
+  function checkDone() {
+    if (!S.finished && S.running && typedText() === S.target) finish();
+  }
+  ['paste', 'drop'].forEach(function (ev) {
+    el.typer.addEventListener(ev, function (e) {
+      e.preventDefault();
+      setHintWarn(t('warnPaste'));
+    });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && S.finished) { reset(); el.typer.focus(); }
+  });
+
+  el.againBtn.addEventListener('click', function () { reset(); el.typer.focus(); });
+
+  // ---------- setup events ----------
+  el.verse.addEventListener('change', function () {
+    save('verse:' + S.lang, el.verse.value); applyVerse();
+    if (el.verse.value !== 'custom' || S.target) el.typer.focus();
+  });
+  el.penalty.addEventListener('change', function () { save('penalty', el.penalty.value); });
+  el.customRef.addEventListener('input', function () { save('customRef:' + S.lang, el.customRef.value); applyVerse(); });
+  el.customText.addEventListener('input', function () { save('customText:' + S.lang, el.customText.value); applyVerse(); });
+
+  // ---------- boot ----------
+  el.penalty.value = load('penalty', '1');
+  init();
+})();
+</script>
