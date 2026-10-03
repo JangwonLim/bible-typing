@@ -442,7 +442,7 @@
       <span class="pill" id="pill" data-state="idle">대기 중</span>
     </div>
     <p class="verse" id="target" aria-live="off"></p>
-    <div class="typing">
+    <div class="typing" id="typing">
       <textarea id="typer" rows="3" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
         placeholder="여기를 누르고 첫 글자를 치는 순간 시간이 시작됩니다" data-i18n-ph="phTyper" aria-label="말씀 입력"></textarea>
       <div class="hint" id="hint">
@@ -599,7 +599,7 @@
   var el = {
     verse: $('verse'), penalty: $('penalty'),
     custom: $('custom'), customRef: $('customRef'), customText: $('customText'),
-    ref: $('ref'), tags: $('tags'), pill: $('pill'), target: $('target'), typer: $('typer'), hint: $('hint'),
+    ref: $('ref'), tags: $('tags'), typing: $('typing'), pill: $('pill'), target: $('target'), typer: $('typer'), hint: $('hint'),
     sTime: $('sTime'), sAcc: $('sAcc'), sErr: $('sErr'), sDel: $('sDel'),
     result: $('result'), rRef: $('rRef'), rFinal: $('rFinal'), rFormula: $('rFormula'),
     rTime: $('rTime'), rAcc: $('rAcc'), rErr: $('rErr'), rDel: $('rDel'), rKpm: $('rKpm'),
@@ -792,8 +792,7 @@
     cancelAnimationFrame(S.raf);
     S.running = false; S.finished = false; S.startT = 0; S.endT = 0;
     S.composing = false; S.pendingFinish = false; S.dels = 0;
-    el.typer.disabled = !S.target;
-    el.typer.value = '';
+    freshTyper();
     el.result.hidden = true;
     setPill('idle');
     setHintWarn('');
@@ -824,6 +823,19 @@
     return ((S.finished ? S.endT : performance.now()) - S.startT) / 1000;
   }
 
+  // 한글 입력기는 조합 중인 글자를 입력칸에 묶어 두기 때문에, 값만 비우면 이전 판의 조합 상태가
+  // 새 판의 첫 글자에 섞여 들어갈 수 있음. 매 판마다 새 입력칸으로 바꿔 끼워서 끊어 냄.
+  function freshTyper() {
+    var old = el.typer;
+    var hadFocus = document.activeElement === old;
+    var fresh = old.cloneNode(false);
+    fresh.value = '';
+    fresh.disabled = !S.target;
+    old.replaceWith(fresh);
+    el.typer = fresh;
+    if (hadFocus) fresh.focus();
+  }
+
   function typedText() { return el.typer.value.replace(/[\r\n]/g, ''); }
 
   function tryFinish() {
@@ -842,6 +854,7 @@
     S.finished = true; S.running = false; S.pendingFinish = false;
     cancelAnimationFrame(S.raf);
     var typed = typedText();
+    el.typer.blur();
     el.typer.disabled = true;
     setPill('done');
     setHintWarn('');
@@ -914,16 +927,16 @@
   }
 
   // ---------- input events ----------
-  el.typer.addEventListener('compositionstart', function () { S.composing = true; start(); });
-  el.typer.addEventListener('compositionupdate', function () { S.composing = true; });
-  el.typer.addEventListener('compositionend', function () {
+  el.typing.addEventListener('compositionstart', function () { S.composing = true; start(); });
+  el.typing.addEventListener('compositionupdate', function () { S.composing = true; });
+  el.typing.addEventListener('compositionend', function () {
     S.composing = false;
     render();
     checkDone();
     if (S.pendingFinish) setTimeout(tryFinish, 0);
     S.pendingFinish = false;
   });
-  el.typer.addEventListener('input', function (e) {
+  el.typing.addEventListener('input', function (e) {
     if (S.finished) return;
     if (/[\r\n]/.test(el.typer.value)) {
       el.typer.value = typedText();
@@ -949,7 +962,7 @@
     else return;
     tick();
   }
-  el.typer.addEventListener('keydown', function (e) {
+  el.typing.addEventListener('keydown', function (e) {
     countDelete(e);
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -964,7 +977,7 @@
     if (!S.finished && S.running && typedText() === S.target) finish();
   }
   ['paste', 'drop'].forEach(function (ev) {
-    el.typer.addEventListener(ev, function (e) {
+    el.typing.addEventListener(ev, function (e) {
       e.preventDefault();
       setHintWarn(t('warnPaste'));
     });
