@@ -28,6 +28,8 @@
     --bad-soft: #FBE1E4;
     --good: #16775F;
     --good-soft: #DDF2EA;
+    --gold: #A2650A;
+    --gold-soft: #FBEFD5;
     --serif: "Gowun Batang", "AppleMyungjo", "Nanum Myeongjo", "Batang", serif;
     --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
     --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -48,6 +50,8 @@
       --bad-soft: #43202A;
       --good: #5FD3AF;
       --good-soft: #173A31;
+      --gold: #F2C14E;
+      --gold-soft: #3A2E12;
     }
   }
   :root[data-theme="dark"] {
@@ -65,6 +69,8 @@
     --bad-soft: #43202A;
     --good: #5FD3AF;
     --good-soft: #173A31;
+    --gold: #F2C14E;
+    --gold-soft: #3A2E12;
   }
 
   * { box-sizing: border-box; }
@@ -486,8 +492,53 @@
     100% { transform: scale(1); opacity: 1; }
   }
 
+  /* Result show */
+  .result-top { align-items: center; }
+  .final-block { flex: 1; min-width: 220px; }
+  .grade {
+    flex: none;
+    width: 104px;
+    height: 104px;
+    border: 4px solid currentColor;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 2px;
+    color: var(--muted);
+    background: var(--bg);
+    transform: rotate(-8deg);
+  }
+  .grade[data-grade="S"] { color: var(--gold); background: var(--gold-soft); }
+  .grade[data-grade="A"] { color: var(--accent); background: var(--accent-soft); }
+  .grade[data-grade="B"] { color: var(--ink); }
+  .g-letter { font-family: var(--serif); font-weight: 700; font-size: 62px; line-height: 1; }
+  .g-cap { font-size: 11px; font-weight: 700; letter-spacing: 0.2em; }
+  .grade.pending { opacity: 0; }
+  .grade.stamp { animation: stamp .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+  @keyframes stamp {
+    0% { opacity: 0; transform: rotate(-8deg) scale(2.4); }
+    60% { opacity: 1; transform: rotate(-8deg) scale(.92); }
+    100% { opacity: 1; transform: rotate(-8deg) scale(1); }
+  }
+  .badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    vertical-align: middle;
+    background: var(--gold-soft);
+    color: var(--gold);
+  }
+  .badge.clean { background: var(--good-soft); color: var(--good); }
+  .grade-rule { font-size: 12px; color: var(--muted); }
+  #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+
   @media (prefers-reduced-motion: reduce) {
-    .card.shake, .combo b.pop, .count.tick { animation: none; }
+    .card.shake, .combo b.pop, .count.tick, .grade.stamp { animation: none; }
     .burst.show { animation: fade 1s linear forwards; }
     @keyframes fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
     .fill { transition: none; }
@@ -503,8 +554,9 @@
     </div>
     <div class="head-right">
       <div class="toggles">
-        <div class="theme">
-          <button type="button" id="soundBtn" aria-pressed="true">소리 켜짐</button>
+        <div class="theme" role="group" aria-label="소리">
+          <button type="button" id="musicBtn" aria-pressed="true">음악 켜짐</button>
+          <button type="button" id="soundBtn" aria-pressed="true">효과음 켜짐</button>
         </div>
         <div class="theme" role="group" aria-label="화면 밝기">
           <button type="button" id="themeLight" aria-pressed="true">라이트</button>
@@ -591,8 +643,12 @@
 
   <section class="result" id="result" hidden aria-live="polite">
     <div class="result-top">
-      <div>
-        <p class="who" id="rRef"></p>
+      <div class="grade pending" id="rGrade" data-grade="C" role="img" aria-label="등급">
+        <span class="g-letter" id="rGradeL">C</span>
+        <span class="g-cap">등급</span>
+      </div>
+      <div class="final-block">
+        <p class="who"><span id="rRef"></span><span class="badge" id="rBadge" hidden></span></p>
         <div class="final-label" data-i18n="finalLabel">최종 기록</div>
         <div class="final" id="rFinal">0.00<small>초</small></div>
         <div class="formula" id="rFormula"></div>
@@ -608,8 +664,10 @@
     <div class="result-foot">
       <span data-i18n="legend">위 말씀에서 빨간 글자가 틀린 곳, 줄 그은 글자가 빠뜨린 곳이에요.</span>
       <span id="rKpm"></span>
+      <span class="grade-rule">등급 기준 · S 실수 없이 300타 이상 · A 실수 3% 이하, 220타 이상 · B 실수 8% 이하, 140타 이상 · 실수 = 남은 오타 + 지운 횟수</span>
     </div>
   </section>
+  <canvas id="confetti" aria-hidden="true" hidden></canvas>
 
 </div>
 
@@ -731,7 +789,8 @@
     result: $('result'), rRef: $('rRef'), rFinal: $('rFinal'), rFormula: $('rFormula'),
     rTime: $('rTime'), rAcc: $('rAcc'), rErr: $('rErr'), rDel: $('rDel'), rKpm: $('rKpm'),
     rAccChip: $('rAccChip'), rErrChip: $('rErrChip'), rDelChip: $('rDelChip'),
-    againBtn: $('againBtn'), themeLight: $('themeLight'), themeDark: $('themeDark'), soundBtn: $('soundBtn'),
+    againBtn: $('againBtn'), themeLight: $('themeLight'), themeDark: $('themeDark'), soundBtn: $('soundBtn'), musicBtn: $('musicBtn'),
+    rGrade: $('rGrade'), rGradeL: $('rGradeL'), rBadge: $('rBadge'), confetti: $('confetti'),
     card: document.querySelector('.card'), fill: $('fill'), pct: $('pct'), combo: $('combo'), comboN: $('comboN'),
     burst: $('burst'), stage: $('stage'), ready: $('ready'), count: $('count'), startBtn: $('startBtn')
   };
@@ -752,7 +811,8 @@
     spans: [], dels: 0,
     phase: 'idle', cd: [],
     combo: 0, maxCombo: 0, prevEnd: 0, prevErr: 0,
-    sound: true
+    sound: true, music: true, sprint: false,
+    fx: [], fxRaf: 0
   };
   function t(k) { return T[S.lang][k]; }
 
@@ -820,8 +880,8 @@
 
   // ---------- sound (Web Audio로 직접 합성, 파일 없음) ----------
   var AC = null;
-  function audio() {
-    if (!S.sound) return null;
+  function audio() { return S.sound ? ctx() : null; }
+  function ctx() {
     try {
       AC = AC || new (window.AudioContext || window.webkitAudioContext)();
       if (AC.state === 'suspended') AC.resume();
@@ -847,12 +907,78 @@
     count: function () { tone(660, 0.16, 'sine', 0.2); },
     go: function () { tone(990, 0.12, 'sine', 0.2); tone(1320, 0.3, 'sine', 0.2, 0.1); },
     combo: function () { [880, 1109, 1319].forEach(function (f, i) { tone(f, 0.14, 'triangle', 0.12, i * 0.06); }); },
-    finish: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.3, 'triangle', 0.14, i * 0.11); }); }
+    finish: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.3, 'triangle', 0.14, i * 0.11); }); },
+    stamp: function (g) {
+      tone(110, 0.25, 'sine', 0.3); tone(70, 0.3, 'sine', 0.25, 0.02);
+      if (g === 'S') [1568, 2093, 2637].forEach(function (f, i) { tone(f, 0.18, 'triangle', 0.09, 0.08 + i * 0.07); });
+    },
+    cheer: function () { [784, 988, 1175, 1568, 1976].forEach(function (f, i) { tone(f, 0.22, 'triangle', 0.1, i * 0.07); }); }
   };
+
+  // 배경음악: C-G-Am-F 진행의 잔잔한 아르페지오 (직접 합성한 곡, 저작권 없음)
+  // 말씀을 80% 넘게 치면 빨라짐
+  var BGM = { on: false, timer: 0, next: 0, step: 0, gain: null };
+  var CHORDS = [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]];
+  function mtof(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+  function bgmNote(a, midi, t0, dur, type, vol) {
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(mtof(midi), t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(BGM.gain);
+    o.start(t0); o.stop(t0 + dur + 0.05);
+  }
+  function bgmSchedule() {
+    var a = AC;
+    var eighth = 60 / (S.sprint ? 132 : 100) / 2;
+    while (BGM.next < a.currentTime + 0.15) {
+      var ch = CHORDS[Math.floor(BGM.step / 8) % 4], k = BGM.step % 8, t0 = BGM.next;
+      var arp = [ch[0] + 12, ch[1] + 12, ch[2] + 12, ch[0] + 24, ch[2] + 12, ch[1] + 12, ch[0] + 12, ch[1] + 12];
+      bgmNote(a, arp[k], t0, eighth * 1.6, 'triangle', 0.06);
+      if (k === 0 || k === 4) bgmNote(a, ch[0] - 12, t0, eighth * 3.6, 'sine', 0.16);
+      if (k === 0) ch.forEach(function (m) { bgmNote(a, m, t0, eighth * 8, 'sine', 0.025); });
+      BGM.next += eighth;
+      BGM.step++;
+    }
+  }
+  function bgmStart() {
+    if (!S.music || BGM.on) return;
+    var a = ctx();
+    if (!a) return;
+    BGM.gain = a.createGain();
+    BGM.gain.gain.setValueAtTime(0.0001, a.currentTime);
+    BGM.gain.gain.exponentialRampToValueAtTime(0.6, a.currentTime + 0.5);
+    BGM.gain.connect(a.destination);
+    BGM.next = a.currentTime + 0.05;
+    BGM.step = 0;
+    BGM.on = true;
+    bgmSchedule();
+    BGM.timer = setInterval(bgmSchedule, 40);
+  }
+  function bgmStop(fade) {
+    if (!BGM.on) return;
+    BGM.on = false;
+    clearInterval(BGM.timer);
+    var a = AC, g = BGM.gain, now = a.currentTime;
+    g.gain.cancelScheduledValues(now);
+    g.gain.setValueAtTime(Math.max(g.gain.value, 0.0001), now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + fade);
+    setTimeout(function () { g.disconnect(); }, fade * 1000 + 200);
+  }
+  function setMusic(on) {
+    S.music = on;
+    el.musicBtn.setAttribute('aria-pressed', String(on));
+    el.musicBtn.textContent = on ? '음악 켜짐' : '음악 꺼짐';
+    save('music', on);
+    if (!on) bgmStop(0.3);
+    else if (S.phase === 'count' || S.phase === 'run') bgmStart();
+  }
   function setSound(on) {
     S.sound = on;
     el.soundBtn.setAttribute('aria-pressed', String(on));
-    el.soundBtn.textContent = on ? '소리 켜짐' : '소리 꺼짐';
+    el.soundBtn.textContent = on ? '효과음 켜짐' : '효과음 꺼짐';
     save('sound', on);
   }
 
@@ -895,7 +1021,73 @@
     S.combo = 0;
     showCombo(false);
   }
+  var reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  function later(fn, ms) { S.fx.push(setTimeout(fn, ms)); }
+  function countUp(node, value, unit, ms) {
+    function put(v) { node.innerHTML = v.toFixed(2) + '<small>' + unit + '</small>'; }
+    if (reduceMotion.matches) { put(value); return; }
+    var t0 = performance.now();
+    (function step(now) {
+      var p = Math.min(1, (now - t0) / ms);
+      put(value * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) S.fxRaf = requestAnimationFrame(step);
+    })(t0);
+  }
+
+  var confettiRaf = 0;
+  function confetti(n) {
+    if (reduceMotion.matches) return;
+    var cv = el.confetti, dpr = window.devicePixelRatio || 1;
+    var W = window.innerWidth, H = window.innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    cv.hidden = false;
+    var c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var css = getComputedStyle(document.documentElement);
+    var colors = ['--gold', '--accent', '--good', '--bad'].map(function (v) { return css.getPropertyValue(v).trim(); });
+    var parts = [];
+    for (var i = 0; i < n; i++) {
+      var fromLeft = i % 2 === 0;
+      parts.push({
+        x: fromLeft ? -10 : W + 10, y: H * (0.55 + Math.random() * 0.3),
+        vx: (fromLeft ? 1 : -1) * (4 + Math.random() * 7), vy: -(9 + Math.random() * 9),
+        w: 6 + Math.random() * 6, h: 8 + Math.random() * 8,
+        r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+        color: colors[i % colors.length]
+      });
+    }
+    cancelAnimationFrame(confettiRaf);
+    var t0 = performance.now();
+    (function frame(now) {
+      c.clearRect(0, 0, W, H);
+      var alive = false;
+      parts.forEach(function (p) {
+        p.vy += 0.32; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        if (p.y < H + 20) alive = true;
+        c.save(); c.translate(p.x, p.y); c.rotate(p.r);
+        c.fillStyle = p.color;
+        c.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r * 2)));
+        c.restore();
+      });
+      if (alive && now - t0 < 5000) confettiRaf = requestAnimationFrame(frame);
+      else stopConfetti();
+    })(t0);
+  }
+  function stopConfetti() {
+    cancelAnimationFrame(confettiRaf);
+    el.confetti.hidden = true;
+  }
+
+  function gradeOf(mistakes, len, kpm) {
+    var rate = len ? mistakes / len * 100 : 100;
+    if (mistakes === 0 && kpm >= 300) return 'S';
+    if (rate <= 3 && kpm >= 220) return 'A';
+    if (rate <= 8 && kpm >= 140) return 'B';
+    return 'C';
+  }
+
   function setProgress(end, done) {
+    if (S.running) S.sprint = S.target.length > 0 && end / S.target.length >= 0.8;
     var pct = S.target.length ? Math.round(end / S.target.length * 100) : 0;
     el.fill.style.width = pct + '%';
     el.fill.classList.toggle('full', !!done);
@@ -913,6 +1105,7 @@
   // ---------- init ----------
   function init() {
     setSound(load('sound', true) !== false);
+    setMusic(load('music', true) !== false);
     setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
     document.documentElement.lang = S.lang;
     document.querySelectorAll('[data-i18n]').forEach(function (n) { n.innerHTML = t(n.getAttribute('data-i18n')); });
@@ -1008,6 +1201,10 @@
   function reset() {
     cancelAnimationFrame(S.raf);
     S.cd.forEach(clearTimeout); S.cd = [];
+    S.fx.forEach(clearTimeout); S.fx = [];
+    cancelAnimationFrame(S.fxRaf);
+    stopConfetti();
+    S.sprint = false;
     S.phase = 'idle';
     S.running = false; S.finished = false; S.startT = 0; S.endT = 0;
     S.composing = false; S.pendingFinish = false; S.dels = 0;
@@ -1032,6 +1229,7 @@
     if (S.finished) reset();
     S.phase = 'count';
     setPill('count');
+    bgmStart();
     el.stage.hidden = false;
     el.ready.hidden = true;
     el.count.hidden = false;
@@ -1114,14 +1312,36 @@
     var r = align(typed, S.target, true);
     paint(r, -1);
     setProgress(S.target.length, true);
+    S.sprint = false;
+    bgmStop(0.6);
     SFX.finish();
     var secs = elapsed();
     var penalty = parseFloat(el.penalty.value) || 0;
     var acc = S.target.length ? (r.ok / (S.target.length + r.extra)) * 100 : 0;
     var final = secs + (r.errors + S.dels) * penalty;
 
+    var kpm = secs > 0 ? keystrokes(typed) / (secs / 60) : 0;
+    var mistakes = r.errors + S.dels;
+    var grade = gradeOf(mistakes, S.target.length, kpm);
+    var perfect = mistakes === 0, clean = r.errors === 0;
+
     el.rRef.textContent = S.ref;
-    el.rFinal.innerHTML = final.toFixed(2) + '<small>' + t('uSec') + '</small>';
+    el.rBadge.hidden = !clean;
+    el.rBadge.textContent = perfect ? '퍼펙트!' : '오타 없음';
+    el.rBadge.className = 'badge' + (perfect ? '' : ' clean');
+    el.rGrade.dataset.grade = grade;
+    el.rGrade.setAttribute('aria-label', grade + ' 등급');
+    el.rGradeL.textContent = grade;
+    el.rGrade.className = 'grade pending';
+    countUp(el.rFinal, final, t('uSec'), 700);
+    later(function () {
+      el.rGrade.className = 'grade stamp';
+      SFX.stamp(grade);
+      if (clean) {
+        confetti(perfect ? 160 : 60);
+        if (perfect) SFX.cheer();
+      }
+    }, reduceMotion.matches ? 0 : 750);
     el.rFormula.textContent = penalty > 0 ? t('formula')(secs.toFixed(2), r.errors, S.dels, penalty) : t('noPenalty');
     el.rTime.textContent = secs.toFixed(2) + t('uSec');
     el.rAcc.textContent = acc.toFixed(1) + '%';
@@ -1257,6 +1477,7 @@
   el.startBtn.addEventListener('click', beginCountdown);
   el.againBtn.addEventListener('click', function () { reset(); beginCountdown(); });
   el.soundBtn.addEventListener('click', function () { setSound(!S.sound); });
+  el.musicBtn.addEventListener('click', function () { setMusic(!S.music); });
 
   // ---------- setup events ----------
   el.verse.addEventListener('change', function () {
