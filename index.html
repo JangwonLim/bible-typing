@@ -58,6 +58,12 @@
   /* ---------- title ---------- */
   .topbar { position: absolute; left: 30px; right: 30px; top: 16px; display: flex; justify-content: space-between; align-items: center; }
   .topbar .px { font-size: 14px; }
+  .topbar .right { display: flex; align-items: center; gap: 22px; }
+  .fsbtn { font-size: 15px; color: var(--cyan); border: 2px solid var(--cyan); padding: 5px 12px; box-shadow: 0 0 10px rgba(61,245,255,.35); }
+  .fsbtn kbd { font-family: var(--px); font-size: 11px; margin-left: 8px; color: var(--yellow); }
+  .fsbtn:hover { background: rgba(61,245,255,.12); }
+  .team-row .demo { margin-left: auto; font-size: 15px; padding: 6px 12px; border: 2px solid var(--yellow); color: var(--yellow); box-shadow: 0 0 10px rgba(255,233,77,.3); }
+  .team-row .demo:hover { background: rgba(255,233,77,.12); }
   .logo { position: absolute; left: 0; right: 0; top: 52px; text-align: center; }
   .logo h1 { margin: 0; font-family: var(--gal); font-weight: 700; font-size: 112px; line-height: 1; letter-spacing: 4px; }
   .logo p { margin: 18px 0 0; font-size: 16px; letter-spacing: 6px; }
@@ -209,7 +215,7 @@
 
     <!-- 시작 화면 -->
     <section class="screen" id="scrTitle" aria-label="스테이지 선택">
-      <div class="topbar"><span class="tag1p">1P</span><span class="px neon-cyan">FREE PLAY</span></div>
+      <div class="topbar"><span class="tag1p">1P</span><span class="right"><button type="button" class="fsbtn" id="fsBtn">전체화면<kbd>F</kbd></button><span class="px neon-cyan">FREE PLAY</span></span></div>
       <div class="logo"><h1 class="neon-pink">말씀 오락실</h1><p class="px neon-cyan">BIBLE TYPING ARCADE</p></div>
       <div class="menu">
         <div class="head"><span class="px">SELECT STAGE</span><div class="tabs" id="tabs" role="tablist" aria-label="말씀 분류"></div></div>
@@ -219,7 +225,7 @@
           <textarea id="customText" placeholder="대결할 말씀 본문을 넣어 주세요. 두 노트북에 똑같이 넣어야 해요." spellcheck="false"></textarea>
         </div>
         <div class="team" id="team" hidden>
-          <div class="team-row"><span>인원</span><button type="button" class="step" id="tmMinus" aria-label="한 명 줄이기">◀</button><b id="tmPlayers">8<small>명</small></b><button type="button" class="step" id="tmPlus" aria-label="한 명 늘리기">▶</button></div>
+          <div class="team-row"><span>인원</span><button type="button" class="step" id="tmMinus" aria-label="한 명 줄이기">◀</button><b id="tmPlayers">8<small>명</small></b><button type="button" class="step" id="tmPlus" aria-label="한 명 늘리기">▶</button><button type="button" class="demo" id="tmDemo">연습 판 (설명용)</button></div>
           <div class="team-row"><span>대결 코드</span><input type="text" id="tmCode" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="대결 코드 4자리"><button type="button" class="ghost" id="tmNew">새로 뽑기</button></div>
           <div class="team-help">두 팀 노트북에 같은 코드를 넣으면 같은 말씀·같은 교대 위치가 나와요</div>
           <ol class="team-list" id="tmList"></ol>
@@ -384,7 +390,7 @@
     cells: $('cells'), hPct: $('hPct'), vbox: $('vbox'), verse: $('verse'), count: $('count'), ready: $('ready'),
     judge: $('judge'), pwarn: $('pwarn'), fMiss: $('fMiss'), fBack: $('fBack'), fPen: $('fPen'), menuBtn: $('menuBtn'), typer: $('typer'),
     rTitle: $('rTitle'), rRef: $('rRef'), rTime: $('rTime'), rErr: $('rErr'), rErrN: $('rErrN'), rDel: $('rDel'), rDelN: $('rDelN'), rFinal: $('rFinal'),
-    team: $('team'), tmMinus: $('tmMinus'), tmPlus: $('tmPlus'), tmPlayers: $('tmPlayers'), tmCode: $('tmCode'), tmNew: $('tmNew'), tmList: $('tmList'),
+    team: $('team'), tmMinus: $('tmMinus'), tmPlus: $('tmPlus'), tmPlayers: $('tmPlayers'), tmCode: $('tmCode'), tmNew: $('tmNew'), tmList: $('tmList'), tmDemo: $('tmDemo'), fsBtn: $('fsBtn'),
     hRightK: $('hRightK'), fComboWrap: $('fComboWrap'), fCombo: $('fCombo'), swap: $('swap'), swapWho: $('swapWho'),
     rLetter: $('rLetter'), rWhy: $('rWhy'), rAcc: $('rAcc'), rKpm: $('rKpm'), rMax: $('rMax'), cAgain: $('cAgain'), cOther: $('cOther')
   };
@@ -410,7 +416,7 @@
     mode: 'solo', locked: false, lastWarn: 0
   };
   // 팀전 릴레이 상태
-  var T = { code: '', players: 8, verses: [], swaps: [], idx: 0, swapIdx: 0, runner: 1, offset: 0, total: 0,
+  var T = { demo: false, code: '', players: 8, verses: [], swaps: [], idx: 0, swapIdx: 0, runner: 1, offset: 0, total: 0,
     errors: 0, ok: 0, extra: 0, len: 0, keys: 0 };
 
   function normalize(t) { return (t || '').replace(/\s+/g, ' ').trim(); }
@@ -774,7 +780,7 @@
     renderTabs(); renderList();
     el.titleHelp.className = '';
     el.titleHelp.textContent = key === 'custom' ? '구절과 본문을 넣고 PRESS ENTER를 누르세요'
-      : key === 'team' ? '↑↓ 인원 바꾸기 · 두 노트북에 같은 코드를 넣고 PRESS ENTER'
+      : key === 'team' ? '↑↓ 인원 바꾸기 · 처음엔 연습 판으로 규칙을 보여 주세요 · 대결은 PRESS ENTER'
       : '↑↓ 말씀 고르기 · ←→ 분류 바꾸기 · 마우스로 눌러도 돼요';
   }
   function moveSel(d) {
@@ -863,6 +869,7 @@
   }
   el.tmMinus.addEventListener('click', function (e) { setPlayers(T.players - 1); mouseBlur(e); });
   el.tmPlus.addEventListener('click', function (e) { setPlayers(T.players + 1); mouseBlur(e); });
+  el.tmDemo.addEventListener('click', function () { startTeam(true); });
   el.tmNew.addEventListener('click', function (e) { T.code = newCode(); save('code', T.code); SFX.select(); renderTeam(); mouseBlur(e); });
   el.tmCode.addEventListener('input', function () {
     var v = el.tmCode.value.replace(/\D/g, '').slice(0, 4);
@@ -870,7 +877,29 @@
     T.code = v; save('code', v); renderTeam();
   });
 
-  function startTeam() {
+  // 설명용 연습 판: 짧은 말씀 3개, 두 단어마다 교대가 걸려서 규칙을 금방 보여 줄 수 있음
+  var DEMO_IDS = ['gen1-1', 'ps23-1', 'f-love-s'];
+  function demoSwaps(verses) {
+    var cands = [], off = 0;
+    verses.forEach(function (v) {
+      for (var i = 0; i < v.text.length - 1; i++) if (v.text[i] === ' ') cands.push(off + i + 1);
+      off += v.text.length;
+    });
+    return cands.filter(function (c, k) { return k % 2 === 1; });
+  }
+  function startTeam(demo) {
+    T.demo = !!demo;
+    if (T.demo) {
+      SFX.select();
+      S.mode = 'team';
+      T.verses = DEMO_IDS.map(function (id) { return ALL.filter(function (v) { return v.id === id; })[0]; });
+      T.swaps = demoSwaps(T.verses);
+      T.total = T.verses.reduce(function (n, v) { return n + v.text.length; }, 0);
+      show('play');
+      resetRun();
+      beginCountdown();
+      return;
+    }
     if (!/^\d{4}$/.test(T.code)) {
       el.titleHelp.className = 'warn';
       el.titleHelp.textContent = '대결 코드 4자리를 넣어 주세요';
@@ -933,7 +962,7 @@
   // ---------- play ----------
   function loadVerse(v) {
     S.verse = v; S.target = v.text; S.ref = v.ref;
-    el.hStage.textContent = S.mode === 'team' ? 'TEAM RELAY · ' + (T.idx + 1) + ' / ' + T.verses.length
+    el.hStage.textContent = S.mode === 'team' ? (T.demo ? 'TEAM RELAY 연습 · ' : 'TEAM RELAY · ') + (T.idx + 1) + ' / ' + T.verses.length
       : v.custom ? 'CUSTOM STAGE' : tabInfo(S.tab).label + ' · STAGE ' + pad2(S.stageNo);
     el.hRef.textContent = v.ref;
     el.hFruit.hidden = !v.fruit;
@@ -1267,7 +1296,8 @@
     var team = S.mode === 'team';
     el.rTitle.textContent = perfect ? 'PERFECT!' : team ? 'TEAM CLEAR!' : 'STAGE CLEAR!';
     el.rRef.textContent = team
-      ? '팀전 릴레이 · 말씀 ' + T.verses.length + '개 · ' + T.total + '자 · ' + T.players + '명 · 대결 코드 ' + T.code
+      ? (T.demo ? '팀전 릴레이 연습 판 · 말씀 ' + T.verses.length + '개 · ' + T.total + '자 · ' + T.players + '명'
+        : '팀전 릴레이 · 말씀 ' + T.verses.length + '개 · ' + T.total + '자 · ' + T.players + '명 · 대결 코드 ' + T.code)
       : S.ref + ' · ' + S.target.length + '자';
     el.rTime.textContent = res.secs.toFixed(2);
     el.rErrN.textContent = res.errors + ' × ' + res.penalty + '초';
@@ -1390,6 +1420,41 @@
   el.menuBtn.addEventListener('click', goTitle);
   el.startBtn.addEventListener('click', startGame);
 
+  // ---------- fullscreen ----------
+  function fsElement() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  function toggleFullscreen() {
+    var root = document.documentElement;
+    try {
+      if (fsElement()) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else {
+        var p = (root.requestFullscreen || root.webkitRequestFullscreen).call(root);
+        if (p && p.catch) p.catch(fullscreenRefused);
+      }
+    } catch (e) { fullscreenRefused(); }
+  }
+  // 브라우저가 전체화면을 막으면 브라우저 자체 단축키를 알려 줌
+  function fullscreenRefused() {
+    if (S.screen !== 'title') return;
+    var mac = /Mac/.test(navigator.platform || navigator.userAgent);
+    el.titleHelp.className = 'warn';
+    el.titleHelp.textContent = '이 화면에서는 전체화면 버튼이 막혀 있어요. ' + (mac ? '⌃⌘F' : 'F11') + ' 키로 브라우저 전체화면을 켜 주세요';
+  }
+  function onFullscreenChange() {
+    var on = !!fsElement();
+    el.fsBtn.firstChild.textContent = on ? '창 모드' : '전체화면';
+    // 크롬에서는 전체화면 중에도 Esc를 게임 키로 쓸 수 있게 잡아 둠 (전체화면을 나가려면 Esc를 길게 누름)
+    try {
+      if (on && navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock(['Escape']).catch(function () {});
+      else if (!on && navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
+    } catch (e) {}
+    fit();
+  }
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+  el.fsBtn.addEventListener('click', function (e) { toggleFullscreen(); mouseBlur(e); });
+  if (!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) el.fsBtn.hidden = true;
+
   // ---------- keyboard ----------
   document.addEventListener('keydown', function (e) {
     wakeAudio();
@@ -1400,6 +1465,7 @@
         if (e.key === 'Enter' && tag === 'INPUT') { e.preventDefault(); startGame(); }
         return;
       }
+      if ((e.key === 'f' || e.key === 'F' || e.key === 'ㄹ') && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); toggleFullscreen(); return; }
       var i = TABS.map(function (t) { return t.key; }).indexOf(S.tab);
       if (e.key === 'ArrowDown') { e.preventDefault(); if (S.tab === 'team') setPlayers(T.players - 1); else moveSel(1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); if (S.tab === 'team') setPlayers(T.players + 1); else moveSel(-1); }
@@ -1411,6 +1477,7 @@
       else if (S.running && e.target !== el.typer && tag !== 'BUTTON') el.typer.focus();
     } else if (S.screen === 'result') {
       if (!S.resultReady) return;
+      if ((e.key === 'f' || e.key === 'F' || e.key === 'ㄹ') && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); toggleFullscreen(); return; }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); S.contSel = 1 - S.contSel; renderCont(); SFX.move(); }
       else if (e.key === 'Enter' && tag !== 'BUTTON') { e.preventDefault(); if (S.contSel === 0) playAgain(); else goTitle(); }
       else if (e.key === 'Escape') { e.preventDefault(); goTitle(); }
