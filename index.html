@@ -111,6 +111,7 @@
     text-wrap: balance;
   }
   .head-right { display: grid; justify-items: end; gap: 10px; }
+  .toggles { display: flex; flex-wrap: wrap; gap: 8px; }
   .theme {
     display: inline-flex;
     padding: 3px;
@@ -383,7 +384,113 @@
     .breakdown { grid-template-columns: repeat(2, 1fr); }
     .card, .result { padding-inline: 18px; }
   }
+  /* Game feel */
+  .card { position: relative; }
+  .card.shake { animation: shake .32s ease; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-7px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(2px); }
+  }
+  .typing.err #typer { border-color: var(--bad); background: var(--bad-soft); }
+
+  .meter { display: flex; align-items: center; gap: 12px; }
+  .track { flex: 1; height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+  .fill { height: 100%; width: 0; border-radius: 999px; background: var(--accent); transition: width .15s ease-out; }
+  .fill.full { background: var(--good); }
+  .pct {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 3.2em;
+    text-align: right;
+  }
+  .combo {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 5px;
+    min-width: 5.5em;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .combo b {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 20px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .combo.hot b { color: var(--accent); }
+  .combo b.pop { animation: pop .18s ease-out; }
+  @keyframes pop { from { transform: scale(1.45); } to { transform: scale(1); } }
+
+  .burst {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 46px;
+    text-align: center;
+    pointer-events: none;
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--accent);
+    opacity: 0;
+    z-index: 3;
+  }
+  .burst.good { color: var(--good); }
+  .burst.show { animation: burst 1s ease-out forwards; }
+  @keyframes burst {
+    0% { opacity: 0; transform: translateY(10px) scale(.9); }
+    15% { opacity: 1; transform: translateY(0) scale(1.12); }
+    70% { opacity: 1; transform: translateY(-6px) scale(1); }
+    100% { opacity: 0; transform: translateY(-20px) scale(1); }
+  }
+
+  .play { position: relative; display: grid; gap: 14px; }
+  .stage {
+    position: absolute;
+    inset: -4px;
+    z-index: 2;
+    border-radius: 12px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 20px;
+    text-align: center;
+  }
+  .ready { display: grid; justify-items: center; gap: 12px; }
+  .go-btn { font-size: 20px; padding: 14px 36px; border-radius: 14px; }
+  .ready .sub { color: var(--muted); font-size: 14px; }
+  .count {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: clamp(88px, 18vw, 140px);
+    line-height: 1;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .count.tick { animation: countIn .8s ease-out; }
+  @keyframes countIn {
+    0% { transform: scale(1.7); opacity: 0; }
+    25% { opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
+    .card.shake, .combo b.pop, .count.tick { animation: none; }
+    .burst.show { animation: fade 1s linear forwards; }
+    @keyframes fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+    .fill { transition: none; }
     .verse span { transition: none; }
   }
 </style>
@@ -395,9 +502,14 @@
       <h1 data-i18n="h1">말씀 타자 대결</h1>
     </div>
     <div class="head-right">
-      <div class="theme" role="group" aria-label="화면 밝기">
-        <button type="button" id="themeLight" aria-pressed="true">라이트</button>
-        <button type="button" id="themeDark" aria-pressed="false">다크</button>
+      <div class="toggles">
+        <div class="theme">
+          <button type="button" id="soundBtn" aria-pressed="true">소리 켜짐</button>
+        </div>
+        <div class="theme" role="group" aria-label="화면 밝기">
+          <button type="button" id="themeLight" aria-pressed="true">라이트</button>
+          <button type="button" id="themeDark" aria-pressed="false">다크</button>
+        </div>
       </div>
       <div class="rule" data-i18n="rule">
         <b>최종 기록</b><span class="op">=</span>걸린 시간<span class="op">+</span>(오타 + 지운 횟수) × 벌점<span class="op">·</span>짧은 사람이 승리
@@ -441,10 +553,17 @@
       </div>
       <span class="pill" id="pill" data-state="idle">대기 중</span>
     </div>
+    <div class="meter" aria-hidden="true">
+      <div class="track"><div class="fill" id="fill"></div></div>
+      <span class="pct" id="pct">0%</span>
+      <span class="combo" id="combo">콤보 <b id="comboN">0</b></span>
+    </div>
+    <div class="burst" id="burst" aria-hidden="true"></div>
+    <div class="play">
     <p class="verse" id="target" aria-live="off"></p>
     <div class="typing" id="typing">
       <textarea id="typer" rows="3" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
-        placeholder="여기를 누르고 첫 글자를 치는 순간 시간이 시작됩니다" data-i18n-ph="phTyper" aria-label="말씀 입력"></textarea>
+        placeholder="여기에 입력하세요" data-i18n-ph="phTyper" aria-label="말씀 입력"></textarea>
       <div class="hint" id="hint">
         <span data-i18n="hEnter"><kbd>Enter</kbd> 제출</span>
         <span data-i18n="hEsc"><kbd>Esc</kbd> 처음부터 다시</span>
@@ -452,6 +571,14 @@
         <span data-i18n="hDel">지우면(Backspace) 지운 횟수로 벌점</span>
         <span data-i18n="hPaste">붙여넣기는 막혀 있어요</span>
       </div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="ready" id="ready">
+        <button class="primary go-btn" id="startBtn" type="button">시작하기</button>
+        <span class="sub"><kbd>Enter</kbd>를 눌러도 돼요 · 3초 뒤에 말씀이 열려요</span>
+      </div>
+      <div class="count" id="count" hidden></div>
+    </div>
     </div>
   </section>
 
@@ -577,14 +704,14 @@
       pen0: '없음 (시간만 비교)', pen05: '+0.5초', pen1: '+1초', pen2: '+2초', pen3: '+3초',
       lblCustomRef: '구절', lblCustomText: '말씀 본문 (두 노트북에 똑같이 넣어 주세요)',
       phCustomRef: '예: 시편 1:1', phCustomText: '대결할 말씀을 붙여넣거나 입력하세요',
-      phTyper: '여기를 누르고 첫 글자를 치는 순간 시간이 시작됩니다',
-      hEnter: '<kbd>Enter</kbd> 제출', hEsc: '<kbd>Esc</kbd> 처음부터 다시',
+      phTyper: '여기에 입력하세요',
+      hEnter: '<kbd>Enter</kbd> 시작 · 제출', hEsc: '<kbd>Esc</kbd> 처음부터 다시',
       hAuto: '끝까지 똑같이 치면 자동으로 끝나요', hDel: '지우면(Backspace) 지운 횟수로 벌점', hPaste: '붙여넣기는 막혀 있어요',
       stTime: '시간', stErr: '오타', stDel: '지운 횟수', stAcc: '정확도',
       finalLabel: '최종 기록', again: '다시 하기', rcErr: '남은 오타',
       legend: '위 말씀에서 빨간 글자가 틀린 곳, 줄 그은 글자가 빠뜨린 곳이에요.',
       customOpt: '직접 입력하기', customRefDefault: '직접 입력한 말씀', emptyCustom: '위에 말씀 본문을 넣으면 여기에 나타나요.',
-      idle: '대기 중', run: '입력 중', done: '완료',
+      idle: '대기 중', count: '준비', run: '입력 중', done: '완료',
       warnShort: '아직 끝나지 않았어요. 말씀을 끝까지 입력한 뒤 Enter를 누르세요.',
       warnPaste: '붙여넣기는 할 수 없어요. 직접 입력해 주세요.',
       uSec: '초', uErr: '개', uDel: '회',
@@ -604,7 +731,9 @@
     result: $('result'), rRef: $('rRef'), rFinal: $('rFinal'), rFormula: $('rFormula'),
     rTime: $('rTime'), rAcc: $('rAcc'), rErr: $('rErr'), rDel: $('rDel'), rKpm: $('rKpm'),
     rAccChip: $('rAccChip'), rErrChip: $('rErrChip'), rDelChip: $('rDelChip'),
-    againBtn: $('againBtn'), themeLight: $('themeLight'), themeDark: $('themeDark')
+    againBtn: $('againBtn'), themeLight: $('themeLight'), themeDark: $('themeDark'), soundBtn: $('soundBtn'),
+    card: document.querySelector('.card'), fill: $('fill'), pct: $('pct'), combo: $('combo'), comboN: $('comboN'),
+    burst: $('burst'), stage: $('stage'), ready: $('ready'), count: $('count'), startBtn: $('startBtn')
   };
 
   // ---------- storage (optional convenience) ----------
@@ -620,7 +749,10 @@
     lang: 'ko', target: '', ref: '',
     startT: 0, endT: 0, running: false, finished: false,
     composing: false, pendingFinish: false, raf: 0,
-    spans: [], dels: 0
+    spans: [], dels: 0,
+    phase: 'idle', cd: [],
+    combo: 0, maxCombo: 0, prevEnd: 0, prevErr: 0,
+    sound: true
   };
   function t(k) { return T[S.lang][k]; }
 
@@ -686,6 +818,90 @@
     return { status: status, end: end, ok: ok, errors: bad + miss + extra, extra: extra };
   }
 
+  // ---------- sound (Web Audio로 직접 합성, 파일 없음) ----------
+  var AC = null;
+  function audio() {
+    if (!S.sound) return null;
+    try {
+      AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+      if (AC.state === 'suspended') AC.resume();
+    } catch (e) { return null; }
+    return AC;
+  }
+  function tone(freq, dur, type, vol, when) {
+    var a = audio();
+    if (!a) return;
+    var t0 = a.currentTime + (when || 0);
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t0); o.stop(t0 + dur + 0.03);
+  }
+  var SFX = {
+    tick: function () { tone(1700 + Math.random() * 300, 0.03, 'square', 0.025); },
+    error: function () { tone(170, 0.18, 'sawtooth', 0.07); tone(130, 0.2, 'sawtooth', 0.05, 0.05); },
+    count: function () { tone(660, 0.16, 'sine', 0.2); },
+    go: function () { tone(990, 0.12, 'sine', 0.2); tone(1320, 0.3, 'sine', 0.2, 0.1); },
+    combo: function () { [880, 1109, 1319].forEach(function (f, i) { tone(f, 0.14, 'triangle', 0.12, i * 0.06); }); },
+    finish: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.3, 'triangle', 0.14, i * 0.11); }); }
+  };
+  function setSound(on) {
+    S.sound = on;
+    el.soundBtn.setAttribute('aria-pressed', String(on));
+    el.soundBtn.textContent = on ? '소리 켜짐' : '소리 꺼짐';
+    save('sound', on);
+  }
+
+  // ---------- effects ----------
+  function restartAnim(node, cls) {
+    node.classList.remove(cls);
+    void node.offsetWidth;
+    node.classList.add(cls);
+  }
+  function burst(text, good) {
+    el.burst.textContent = text;
+    el.burst.classList.toggle('good', !!good);
+    restartAnim(el.burst, 'show');
+  }
+  var errTimer = 0;
+  function flashError() {
+    SFX.error();
+    restartAnim(el.card, 'shake');
+    el.typing.classList.add('err');
+    clearTimeout(errTimer);
+    errTimer = setTimeout(function () { el.typing.classList.remove('err'); }, 260);
+  }
+  function showCombo(pop) {
+    el.comboN.textContent = S.combo;
+    el.combo.classList.toggle('hot', S.combo >= 10);
+    if (pop) restartAnim(el.comboN, 'pop');
+  }
+  function addCombo(n) {
+    var before = S.combo;
+    S.combo += n;
+    if (S.combo > S.maxCombo) S.maxCombo = S.combo;
+    showCombo(true);
+    if (Math.floor(S.combo / 10) > Math.floor(before / 10)) {
+      burst(Math.floor(S.combo / 10) * 10 + ' 콤보!');
+      SFX.combo();
+    }
+  }
+  function breakCombo() {
+    if (!S.combo) return;
+    S.combo = 0;
+    showCombo(false);
+  }
+  function setProgress(end, done) {
+    var pct = S.target.length ? Math.round(end / S.target.length * 100) : 0;
+    el.fill.style.width = pct + '%';
+    el.fill.classList.toggle('full', !!done);
+    el.pct.textContent = pct + '%';
+  }
+
   // ---------- theme ----------
   function setTheme(th) {
     document.documentElement.setAttribute('data-theme', th);
@@ -696,6 +912,7 @@
 
   // ---------- init ----------
   function init() {
+    setSound(load('sound', true) !== false);
     setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
     document.documentElement.lang = S.lang;
     document.querySelectorAll('[data-i18n]').forEach(function (n) { n.innerHTML = t(n.getAttribute('data-i18n')); });
@@ -790,14 +1007,42 @@
   // ---------- run lifecycle ----------
   function reset() {
     cancelAnimationFrame(S.raf);
+    S.cd.forEach(clearTimeout); S.cd = [];
+    S.phase = 'idle';
     S.running = false; S.finished = false; S.startT = 0; S.endT = 0;
     S.composing = false; S.pendingFinish = false; S.dels = 0;
+    S.combo = 0; S.maxCombo = 0; S.prevEnd = 0; S.prevErr = 0;
     freshTyper();
     el.result.hidden = true;
+    el.stage.hidden = !S.target;
+    el.ready.hidden = false;
+    el.count.hidden = true;
+    el.burst.classList.remove('show');
+    showCombo(false);
     setPill('idle');
     setHintWarn('');
     render();
     tick();
+  }
+
+  // 3-2-1 카운트다운이 끝나는 순간 말씀이 열리고 시간이 시작됨
+  var STEP = 800;
+  function beginCountdown() {
+    if (!S.target || S.phase === 'count' || S.phase === 'run') return;
+    if (S.finished) reset();
+    S.phase = 'count';
+    setPill('count');
+    el.stage.hidden = false;
+    el.ready.hidden = true;
+    el.count.hidden = false;
+    ['3', '2', '1'].forEach(function (n, i) {
+      S.cd.push(setTimeout(function () {
+        el.count.textContent = n;
+        restartAnim(el.count, 'tick');
+        SFX.count();
+      }, i * STEP));
+    });
+    S.cd.push(setTimeout(start, 3 * STEP));
   }
 
   function setPill(state) {
@@ -807,9 +1052,17 @@
 
   function start() {
     if (S.running || S.finished || !S.target) return;
+    S.cd = [];
+    S.phase = 'run';
     S.running = true;
     S.startT = performance.now();
+    el.stage.hidden = true;
+    el.typer.value = '';
+    el.typer.disabled = false;
+    el.typer.focus();
     setPill('run');
+    SFX.go();
+    burst('시작!', true);
     loop();
   }
 
@@ -827,13 +1080,11 @@
   // 새 판의 첫 글자에 섞여 들어갈 수 있음. 매 판마다 새 입력칸으로 바꿔 끼워서 끊어 냄.
   function freshTyper() {
     var old = el.typer;
-    var hadFocus = document.activeElement === old;
     var fresh = old.cloneNode(false);
     fresh.value = '';
-    fresh.disabled = !S.target;
+    fresh.disabled = true;
     old.replaceWith(fresh);
     el.typer = fresh;
-    if (hadFocus) fresh.focus();
   }
 
   function typedText() { return el.typer.value.replace(/[\r\n]/g, ''); }
@@ -852,6 +1103,7 @@
     if (S.finished) return;
     S.endT = performance.now();
     S.finished = true; S.running = false; S.pendingFinish = false;
+    S.phase = 'done';
     cancelAnimationFrame(S.raf);
     var typed = typedText();
     el.typer.blur();
@@ -861,6 +1113,8 @@
 
     var r = align(typed, S.target, true);
     paint(r, -1);
+    setProgress(S.target.length, true);
+    SFX.finish();
     var secs = elapsed();
     var penalty = parseFloat(el.penalty.value) || 0;
     var acc = S.target.length ? (r.ok / (S.target.length + r.extra)) * 100 : 0;
@@ -873,7 +1127,7 @@
     el.rAcc.textContent = acc.toFixed(1) + '%';
     el.rErr.textContent = r.errors + t('uErr');
     el.rDel.textContent = S.dels + t('uDel');
-    el.rKpm.textContent = t('speed')(secs, typed);
+    el.rKpm.textContent = t('speed')(secs, typed) + ' · 최대 콤보 ' + S.maxCombo;
     el.rAccChip.className = 'chip' + (r.errors === 0 ? ' perfect' : '');
     el.rErrChip.className = 'chip' + (r.errors === 0 ? ' perfect' : ' has-err');
     el.rDelChip.className = 'chip' + (S.dels === 0 ? ' perfect' : ' has-err');
@@ -901,6 +1155,12 @@
     if (S.composing && typed.length) evalText = typed.slice(0, -1);
     var r = align(evalText, S.target, false);
     paint(r, S.finished ? -1 : r.end);
+    setProgress(r.end, false);
+    if (S.running) {
+      if (r.errors > S.prevErr) { breakCombo(); flashError(); }
+      else if (r.end > S.prevEnd) addCombo(r.end - S.prevEnd);
+    }
+    S.prevEnd = r.end; S.prevErr = r.errors;
     var denom = r.end + r.extra;
     S.liveAcc = denom ? (r.ok / denom) * 100 : 100;
     S.liveErr = r.errors;
@@ -927,7 +1187,7 @@
   }
 
   // ---------- input events ----------
-  el.typing.addEventListener('compositionstart', function () { S.composing = true; start(); });
+  el.typing.addEventListener('compositionstart', function () { S.composing = true; });
   el.typing.addEventListener('compositionupdate', function () { S.composing = true; });
   el.typing.addEventListener('compositionend', function () {
     S.composing = false;
@@ -937,7 +1197,8 @@
     S.pendingFinish = false;
   });
   el.typing.addEventListener('input', function (e) {
-    if (S.finished) return;
+    if (!S.running) return;
+    if (!/^delete/.test(e.inputType || '')) SFX.tick();
     if (/[\r\n]/.test(el.typer.value)) {
       el.typer.value = typedText();
       render();
@@ -945,8 +1206,7 @@
       return;
     }
     if (e.isComposing === false) S.composing = false;
-    if (e.inputType === 'deleteByCut') S.dels++;
-    start();
+    if (e.inputType === 'deleteByCut') { S.dels++; breakCombo(); }
     setHintWarn('');
     render();
     checkDone();
@@ -960,9 +1220,11 @@
     if (back && (hasSel || S.composing || ta.selectionStart > 0)) S.dels++;
     else if (fwd && (hasSel || S.composing || ta.selectionEnd < ta.value.length)) S.dels++;
     else return;
+    breakCombo();
     tick();
   }
   el.typing.addEventListener('keydown', function (e) {
+    if (e.target !== el.typer) return;
     countDelete(e);
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -970,7 +1232,7 @@
       tryFinish();
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      reset(); el.typer.focus();
+      reset(); el.startBtn.focus();
     }
   });
   function checkDone() {
@@ -983,15 +1245,23 @@
     });
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && S.finished) { reset(); el.typer.focus(); }
+    if (e.key === 'Escape' && (S.finished || S.phase === 'count')) { reset(); el.startBtn.focus(); return; }
+    if (e.key === 'Enter' && S.phase === 'idle' && S.target) {
+      var tag = e.target.tagName;
+      if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT' || tag === 'BUTTON') return;
+      e.preventDefault();
+      beginCountdown();
+    }
   });
 
-  el.againBtn.addEventListener('click', function () { reset(); el.typer.focus(); });
+  el.startBtn.addEventListener('click', beginCountdown);
+  el.againBtn.addEventListener('click', function () { reset(); beginCountdown(); });
+  el.soundBtn.addEventListener('click', function () { setSound(!S.sound); });
 
   // ---------- setup events ----------
   el.verse.addEventListener('change', function () {
     save('verse:' + S.lang, el.verse.value); applyVerse();
-    if (el.verse.value !== 'custom' || S.target) el.typer.focus();
+    if (S.target) el.startBtn.focus();
   });
   el.themeLight.addEventListener('click', function () { setTheme('light'); });
   el.themeDark.addEventListener('click', function () { setTheme('dark'); });
